@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-agent-bastion
+  labels:
+    app.kubernetes.io/part-of: panw-airs-gcp-k8s
+    security.paloaltonetworks.com/mode: api-gateway-live
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agent-bastion-sa
+  namespace: ai-agent-bastion
+  annotations:
+    iam.gke.io/gcp-service-account: "agent-bastion-sa@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-bastion-env
+  namespace: ai-agent-bastion
+data:
+  GCP_PROJECT_ID: "${GCP_PROJECT_ID}"
+  GCP_LOCATION: "global"
+  VERTEX_AI_MODEL: "gemini-3-flash-preview"
+  AIRS_API_ENDPOINT: "https://service.api.aisecurity.paloaltonetworks.com"
+  AIRS_SECURITY_PROFILE_NAME: "agent-bastion-airs"
+  PORTKEY_GATEWAY_URL_LOCAL: "http://airs-gw.airs-gw.svc.cluster.local/v1"
+  PORTKEY_GATEWAY_URL_CLOUD: "https://aigw.portkey.ai/v1"
+  PORTKEY_GATEWAY_URL: "http://airs-gw.airs-gw.svc.cluster.local/v1"
+  PORTKEY_CONFIG: ""
+  PORTKEY_PROVIDER: "${PORTKEY_PROVIDER}"
+  GW_MODEL: "gemini-2.5-flash-lite"
+  REDIS_HOST: "${REDIS_HOST}"
+  REDIS_PORT: "6379"
+  REDTEAM_CHANNEL_UUID: "${REDTEAM_CHANNEL_UUID}"
+  REDTEAM_TARGET_1_UUID: "${REDTEAM_TARGET_1_UUID}"
+  REDTEAM_TARGET_2_UUID: "${REDTEAM_TARGET_2_UUID}"
+  REDTEAM_TARGET_3_UUID: "${REDTEAM_TARGET_3_UUID}"
+  DOCUMENTS_DIR: "/app/documents"
+  SEED_DOCUMENTS_DIR: "/app/seed-documents"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: prisma-airs-credentials
+  namespace: ai-agent-bastion
+type: Opaque
+stringData:
+  AIRS_API_KEY: "${AIRS_API_KEY}"
+  AIRS_SECURITY_PROFILE_NAME: "agent-bastion-airs"
+  PORTKEY_API_KEY: "${PORTKEY_API_KEY}"
+  REDTEAM_CLIENT_ID: "${REDTEAM_CLIENT_ID}"
+  REDTEAM_CLIENT_SECRET: "${REDTEAM_CLIENT_SECRET}"
+  REDTEAM_TSG_ID: "${REDTEAM_TSG_ID}"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-agent-bastion
+  namespace: ai-agent-bastion
+  labels:
+    app: ai-agent-bastion
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-agent-bastion
+  template:
+    metadata:
+      labels:
+        app: ai-agent-bastion
+    spec:
+      serviceAccountName: agent-bastion-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: live-range
+          image: us-central1-docker.pkg.dev/${GCP_PROJECT_ID}/agent-bastion-repo/ai-agent-bastion:2026.11
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 5050
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: agent-bastion-env
+            - secretRef:
+                name: prisma-airs-credentials
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5050
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5050
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-agent-bastion-svc
+  namespace: ai-agent-bastion
+  labels:
+    app: ai-agent-bastion
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-agent-bastion
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5050
+      protocol: TCP

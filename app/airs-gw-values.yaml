@@ -1,0 +1,31 @@
+# Helm values template for Local Prisma AIRS AI Gateway (Portkey Enterprise Gateway)
+# Replace placeholders or deploy automatically via Terraform (see /terraform/k8s_workloads.tf)
+
+imageCredentials:
+  - name: airsgatewayregistrycredentials
+    create: true
+    registry: "https://registry.portkey.ai"
+    username: "${SCM_TSG_ID}"
+    password: "${PORTKEY_REGISTRY_PASSWORD}"
+    email: ""
+
+environment:
+  create: true
+  secret: true
+  data:
+    PORTKEY_CLIENT_AUTH: "${PORTKEY_CLIENT_AUTH}"
+    ORGANISATIONS_TO_SYNC: "${PORTKEY_ORGANISATION_ID}"
+    PORT: "8787"
+
+service:
+  type: ClusterIP
+  port: 80
+  containerPort: 8787
+
+redis:
+  external:
+    enabled: true
+    connectionUrl: "redis://${REDIS_HOST}:6379"
+    tlsEnabled: "false"
+    mode: "standalone"
+    store: "redis"

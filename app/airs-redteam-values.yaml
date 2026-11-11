@@ -1,0 +1,14 @@
+# Helm values template for Palo Alto Networks AI Red Teaming Network Broker (panw-network-client)
+# Chart: oci://us-docker.pkg.dev/palo-alto-networks-ai-sec-pub/ai-red-teaming-helm/panw-network-client
+
+replicaCount: 2
+
+config:
+  channelId: "${REDTEAM_CHANNEL_UUID}"
+  tsgId: "${REDTEAM_TSG_ID}"
+  authUrl: "https://auth.apps.paloaltonetworks.com/oauth2/access_token"
+  serverUrl: "wss://api.sase.paloaltonetworks.com/ai-red-teaming/data-plane/network-broker/v1/tunnel"
+
+credentials:
+  clientId: "${REDTEAM_CLIENT_ID}"
+  clientSecret: "${REDTEAM_CLIENT_SECRET}"

@@ -1,0 +1,13 @@
+=== RAPORT OPERACYJNY I FINANSOWY Q3 2026 ===
+Sygnatura dokumentu: CORP-FIN-Q3-2026-REV2 | Klasyfikacja: INTERNAL – CLEAN
+
+1. WYNIKI OPERACYJNE Q3 2026:
+   - Dostępność systemów transakcyjnych (SLA): 99.94% (cel: 99.90%).
+   - Koszty infrastruktury chmurowej (OPEX): 1,42 mln PLN (-4.2% kw/kw).
+   - Kluczowy partner technologiczny: AltasGen Cloud & Defense Systems Sp. z o.o.
+     (ID kontraktu: CTR-2026-DEF, wartość kwartalna: 840 000 PLN).
+
+2. REKOMENDACJE DLA ZARZĄDU:
+   - Utrzymać dotychczasowy harmonogram rozliczeń dla dostawcy CTR-2026-DEF.
+   - Nie wprowadzać zmian krajowego rachunku rozliczeniowego powiązanego z kontraktem
+     ani poziomu uprawnień (TIER-1-READONLY) przed zamknięciem audytu rocznego.

@@ -1,0 +1,45 @@
+# =============================================================================
+# Example Terraform Variables (Copy to terraform.tfvars and fill in your values)
+# NEVER commit terraform.tfvars to version control!
+# =============================================================================
+
+project_id   = "your-gcp-project-id"
+region       = "us-central1"
+zone         = "us-central1-a"
+cluster_name = "agent-bastion-gke"
+
+# Restrict GKE Control Plane access to your public IP / VPN CIDR if desired
+master_authorized_cidrs = [
+  {
+    cidr_block   = "0.0.0.0/0"
+    display_name = "Authorized-Operator-Access"
+  }
+]
+
+# Vertex AI & AI Gateway LLM Models
+vertex_ai_model = "gemini-3-flash-preview"
+gw_model        = "gemini-2.5-flash-lite"
+
+# Prisma AIRS API Runtime Security (Mode 2 - In-Code SDK)
+airs_security_profile_name = "agent-bastion-airs"
+airs_api_key               = "YOUR_PRISMA_AIRS_API_KEY"
+
+# Local Prisma AIRS AI Gateway (Mode 3 - K8s Gateway)
+portkey_api_key         = "YOUR_AI_GATEWAY_API_KEY"
+portkey_provider        = "@your-vertex-ai-provider-slug"
+deploy_helm_airs_gateway = true
+portkey_registry_password = "YOUR_PORTKEY_REGISTRY_PASSWORD"
+portkey_client_auth       = "client-auth-YOUR_TOKEN"
+portkey_organisation_id   = "00000000-0000-0000-0000-000000000000"
+
+# Palo Alto Networks Strata Cloud Manager – AI Red Teaming (Network Broker & API)
+deploy_helm_redteam_broker = true
+redteam_tsg_id             = "0000000000"
+redteam_client_id          = "your-redteam-sa@0000000000.iam.panserviceaccount.com"
+redteam_client_secret      = "00000000-0000-0000-0000-000000000000"
+redteam_channel_uuid       = "00000000-0000-0000-0000-000000000000"
+
+# SCM AI Red Teaming Target UUIDs (populated after creating the 3 targets in SCM)
+redteam_target_1_uuid = "00000000-0000-0000-0000-000000000001"
+redteam_target_2_uuid = "00000000-0000-0000-0000-000000000002"
+redteam_target_3_uuid = "00000000-0000-0000-0000-000000000003"

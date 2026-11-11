@@ -1,0 +1,37 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment & Secrets (NEVER COMMIT)
+.env
+.env.*
+!.env.example
+*credentials*.json
+*-key.json
+*secret*.json
+aigw-svc-*.json
+
+# Terraform state & local variables (NEVER COMMIT)
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+!terraform.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Runtime & OS artifacts
+.DS_Store
+Thumbs.db
+app/documents/
+deck/backup/
+*.log
+*.tmp

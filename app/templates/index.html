@@ -1,0 +1,2497 @@
+<!DOCTYPE html>
+<html lang="pl" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Agent Bastion – Kto wydaje rozkazy Twojemu agentowi AI?</title>
+  <!-- Zewnętrzny silnik UI: Bootstrap 5.3.3 Dark + Bootstrap Icons 1.11.3 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" crossorigin="anonymous" />
+  <style>
+    :root {
+      --soc-bg: #0b0d13;
+      --soc-surface: rgba(18, 22, 31, 0.91);
+      --soc-surface-2: rgba(24, 29, 40, 0.95);
+      --soc-input: rgba(11, 14, 20, 0.95);
+      --soc-border: rgba(255, 255, 255, 0.13);
+      --soc-border-strong: rgba(216, 179, 106, 0.50);
+      --soc-gold: #d8b36a;
+      --soc-gold-soft: #ead29c;
+      --soc-steel: #7ea8be;
+      --soc-crimson: #d9384a;
+      --soc-crimson-bg: rgba(217, 56, 74, 0.15);
+      --soc-jade: #3da67c;
+      --soc-jade-bg: rgba(61, 166, 124, 0.15);
+      --soc-text: #f0f2f6;
+      --soc-muted: #b8c2d4;
+      --soc-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background-color: var(--soc-bg);
+      background-image:
+        linear-gradient(180deg, rgba(9, 11, 16, 0.85) 0%, rgba(11, 14, 21, 0.91) 100%),
+        url('/static/cyber_bg.jpg');
+      background-size: cover;
+      background-position: center center;
+      background-attachment: fixed;
+      color: var(--soc-text);
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+    }
+
+    /* KOMPONENT IKONKI INFORMACYJNEJ (i) Z DYMKIEM PO NAJECHANIU */
+    .info-tip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(216, 179, 106, 0.14);
+      border: 1px solid rgba(216, 179, 106, 0.65);
+      color: var(--soc-gold);
+      font-family: var(--soc-mono);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+      font-style: normal;
+      cursor: help;
+      flex-shrink: 0;
+      user-select: none;
+      vertical-align: middle;
+      transition: background-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .info-tip:hover,
+    .info-tip:focus-visible,
+    .info-tip:focus-within {
+      background: var(--soc-gold);
+      color: #0b0d13;
+      border-color: var(--soc-gold-soft);
+      box-shadow: 0 0 10px rgba(216, 179, 106, 0.45);
+      outline: none;
+      z-index: 1250;
+    }
+
+    .info-tip-bubble {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-4px);
+      width: max-content;
+      max-width: min(370px, 84vw);
+      padding: 10px 13px;
+      border-radius: 6px;
+      background: linear-gradient(180deg, #141822 0%, #0b0d13 100%);
+      border: 1px solid var(--soc-gold);
+      border-left: 3px solid var(--soc-gold);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.90), 0 0 0 1px rgba(216, 179, 106, 0.22);
+      color: var(--soc-text);
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.45;
+      text-align: left;
+      text-transform: none;
+      letter-spacing: normal;
+      white-space: normal;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.12s ease-out, transform 0.12s ease-out, visibility 0.12s;
+      z-index: 1300;
+    }
+
+    .info-tip-bubble strong {
+      color: var(--soc-gold-soft);
+      font-weight: 700;
+    }
+
+    .info-tip-bubble code {
+      font-family: var(--soc-mono);
+      font-size: 12px;
+      color: var(--soc-gold);
+      background: rgba(216, 179, 106, 0.12);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .info-tip:hover .info-tip-bubble,
+    .info-tip:focus-visible .info-tip-bubble,
+    .info-tip:focus-within .info-tip-bubble {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .info-tip.info-tip--start .info-tip-bubble {
+      left: 0;
+      right: auto;
+      transform: translateY(-4px);
+    }
+    .info-tip.info-tip--start:hover .info-tip-bubble,
+    .info-tip.info-tip--start:focus-visible .info-tip-bubble,
+    .info-tip.info-tip--start:focus-within .info-tip-bubble {
+      transform: translateY(0);
+    }
+
+    .info-tip.info-tip--end .info-tip-bubble {
+      right: 0;
+      left: auto;
+      transform: translateY(-4px);
+    }
+    .info-tip.info-tip--end:hover .info-tip-bubble,
+    .info-tip.info-tip--end:focus-visible .info-tip-bubble,
+    .info-tip.info-tip--end:focus-within .info-tip-bubble {
+      transform: translateY(0);
+    }
+
+    .info-tip.info-tip--top .info-tip-bubble {
+      top: auto;
+      bottom: calc(100% + 8px);
+    }
+
+    /* GÓRNY PASEK KONSOLI SOC */
+    header.soc-navbar {
+      background: rgba(11, 14, 20, 0.96);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--soc-border);
+      padding: 8px 20px 10px 20px;
+      position: relative;
+      z-index: 200;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 72px;
+      height: 72px;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1.5px solid var(--soc-border-strong);
+      background: #ffffff;
+      padding: 4px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--soc-text);
+      margin: 0;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand h1 span.brand-accent {
+      color: var(--soc-gold);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .arch-trigger-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(180deg, rgba(216, 179, 106, 0.22) 0%, rgba(216, 179, 106, 0.10) 100%);
+      border: 1px solid var(--soc-gold);
+      color: var(--soc-gold-soft);
+      padding: 6px 13px;
+      border-radius: 4px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .arch-trigger-btn:hover {
+      background: var(--soc-gold);
+      color: #0b0d13;
+    }
+
+    .live-Cluster-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--soc-surface-2);
+      border: 1px solid var(--soc-border);
+      padding: 5px 11px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--soc-mono);
+      color: var(--soc-text);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--soc-gold);
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .dot.ok { background: var(--soc-jade); box-shadow: 0 0 8px var(--soc-jade); }
+    .dot.err { background: var(--soc-crimson); box-shadow: 0 0 8px var(--soc-crimson); }
+
+    /* 3 PRZEŁĄCZNIKI TRYBÓW – JEDNOWIERSZOWE, CZYTELNE Z SALI */
+    .mode-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .mode-btn {
+      background: var(--soc-surface);
+      border: 1px solid var(--soc-border);
+      color: var(--soc-text);
+      padding: 8px 13px;
+      min-height: 44px;
+      border-radius: 5px;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.14s ease, background-color 0.14s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .mode-btn:hover {
+      border-color: rgba(255, 255, 255, 0.30);
+      background: var(--soc-surface-2);
+    }
+
+    .mode-btn.active {
+      border-color: var(--soc-gold);
+      background: linear-gradient(180deg, rgba(216, 179, 106, 0.16) 0%, rgba(24, 29, 40, 0.96) 100%);
+      box-shadow: inset 0 2px 0 var(--soc-gold);
+    }
+
+    .mode-btn .mode-title-text {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--soc-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mode-btn.active .mode-title-text {
+      color: var(--soc-gold-soft);
+    }
+
+    .mode-right-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .mode-badge-pill {
+      font-size: 12px;
+      font-family: var(--soc-mono);
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid var(--soc-border);
+      color: var(--soc-muted);
+      white-space: nowrap;
+    }
+
+    .mode-btn.active .mode-badge-pill {
+      border-color: var(--soc-gold);
+      color: var(--soc-gold);
+    }
+
+    /* UKŁAD DWUKOLUMNOWY (62% / 38%) */
+    .stage-container {
+      display: grid;
+      grid-template-columns: minmax(0, 62fr) minmax(0, 38fr);
+      gap: 14px;
+      padding: 12px 20px;
+      max-width: 1860px;
+      width: 100%;
+      margin: 0 auto;
+      flex: 1;
+    }
+
+    @media (max-width: 1200px) {
+      .stage-container { grid-template-columns: 1fr; }
+      .mode-bar { grid-template-columns: 1fr; }
+    }
+
+    .stage-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .soc-card {
+      background: var(--soc-surface);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--soc-border);
+      border-radius: 6px;
+      padding: 13px 16px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.38);
+      min-width: 0;
+      overflow: visible;
+    }
+
+    .soc-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--soc-border);
+      flex-wrap: wrap;
+    }
+
+    .soc-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--soc-gold);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.01em;
+    }
+
+    /* PASEK LISTY ROZWIJANEJ SCENARIUSZY + SKRÓTY AKTÓW 1–4 */
+    .scenario-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--soc-input);
+      border: 1px solid var(--soc-border);
+      border-radius: 5px;
+      padding: 8px 11px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .act-quick-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .act-pill-btn {
+      background: var(--soc-surface-2);
+      border: 1px solid var(--soc-border);
+      color: var(--soc-muted);
+      font-size: 12.5px;
+      font-weight: 700;
+      font-family: var(--soc-mono);
+      padding: 5px 9px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .act-pill-btn:hover {
+      border-color: var(--soc-gold);
+      color: var(--soc-gold-soft);
+    }
+
+    .act-pill-btn.active {
+      background: rgba(216, 179, 106, 0.18);
+      border-color: var(--soc-gold);
+      color: var(--soc-gold-soft);
+    }
+
+    .scenario-select {
+      flex: 1 1 290px;
+      min-width: 0;
+      background-color: var(--soc-surface-2);
+      color: var(--soc-text);
+      border: 1px solid var(--soc-border);
+      border-radius: 4px;
+      padding: 6px 11px;
+      min-height: 40px;
+      font-size: 14.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .scenario-select:focus {
+      outline: none;
+      border-color: var(--soc-gold);
+    }
+
+    /* PRZYCISKI */
+    .btn-soc {
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      border: 1px solid var(--soc-border);
+      background: var(--soc-surface-2);
+      color: var(--soc-text);
+      transition: all 0.14s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+
+    .btn-soc:hover:not(:disabled) {
+      border-color: var(--soc-gold);
+      color: var(--soc-gold-soft);
+    }
+
+    .btn-soc:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    .btn-soc-gold {
+      background: var(--soc-gold);
+      color: #0b0d13;
+      border-color: var(--soc-gold);
+      font-weight: 700;
+      font-size: 14.5px;
+      padding: 7px 15px;
+      min-height: 40px;
+    }
+
+    .btn-soc-gold:hover:not(:disabled) {
+      background: var(--soc-gold-soft);
+      color: #0b0d13;
+    }
+
+    .btn-soc-sm {
+      font-size: 12px;
+      padding: 4px 9px;
+      min-height: 28px;
+    }
+
+    /* BANER WERDYKTU BEZPIECZEŃSTWA */
+    .verdict-banner {
+      padding: 9px 14px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      border: 1px solid var(--soc-border);
+      border-left: 5px solid var(--soc-steel);
+      background: var(--soc-input);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .verdict-banner .verdict-headline {
+      font-size: 15.5px;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+    }
+
+    .verdict-banner.verdict-allow {
+      background: var(--soc-jade-bg);
+      border-color: rgba(61, 166, 124, 0.45);
+      border-left-color: var(--soc-jade);
+    }
+    .verdict-banner.verdict-allow .verdict-headline { color: #75d6b0; }
+
+    .verdict-banner.verdict-compromised {
+      background: var(--soc-crimson-bg);
+      border-color: rgba(217, 56, 74, 0.55);
+      border-left-color: var(--soc-crimson);
+    }
+    .verdict-banner.verdict-compromised .verdict-headline { color: #ff8f9c; }
+
+    .verdict-banner.verdict-defended {
+      background: linear-gradient(90deg, rgba(216, 179, 106, 0.18) 0%, rgba(61, 166, 124, 0.12) 100%);
+      border-color: rgba(216, 179, 106, 0.55);
+      border-left-color: var(--soc-gold);
+    }
+    .verdict-banner.verdict-defended .verdict-headline { color: var(--soc-gold-soft); }
+
+    /* OKNO KONSOLI ROZMOWY Z AGENTEM AI */
+    #chat-log {
+      min-height: 410px;
+      max-height: 58vh;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      padding: 13px;
+      background: var(--soc-input);
+      border: 1px solid var(--soc-border);
+      border-radius: 5px;
+    }
+
+    .msg {
+      padding: 11px 14px;
+      border-radius: 5px;
+      font-size: 15px;
+      line-height: 1.50;
+      border: 1px solid var(--soc-border);
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    .msg.user {
+      background: rgba(31, 41, 61, 0.78);
+      border-color: rgba(126, 168, 190, 0.40);
+      align-self: flex-end;
+      width: 92%;
+    }
+
+    .msg.assistant {
+      background: rgba(20, 24, 34, 0.94);
+      align-self: flex-start;
+      width: 97%;
+    }
+
+    .msg.blocked {
+      background: rgba(216, 179, 106, 0.11);
+      border-color: rgba(216, 179, 106, 0.58);
+      border-left: 4px solid var(--soc-gold);
+      width: 98%;
+    }
+
+    .msg.compromised {
+      background: rgba(217, 56, 74, 0.13);
+      border-color: rgba(217, 56, 74, 0.58);
+      border-left: 4px solid var(--soc-crimson);
+      width: 98%;
+    }
+
+    .msg .who {
+      font-size: 12.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--soc-gold);
+      margin-bottom: 5px;
+      font-family: var(--soc-mono);
+    }
+
+    .msg .bubble {
+      white-space: pre-wrap;
+      color: var(--soc-text);
+      font-size: 15px;
+    }
+
+    .mcp-badges-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 9px;
+    }
+
+    .mcp-badge {
+      padding: 6px 11px;
+      background: rgba(9, 12, 18, 0.92);
+      border: 1px solid var(--soc-border);
+      border-left: 4px solid var(--soc-gold);
+      border-radius: 4px;
+      font-family: var(--soc-mono);
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--soc-text);
+      overflow-wrap: anywhere;
+    }
+
+    .mcp-badge.danger-tool {
+      border-color: rgba(217, 56, 74, 0.58);
+      border-left-color: var(--soc-crimson);
+      background: rgba(217, 56, 74, 0.15);
+      color: #ffc2c9;
+    }
+
+    .msg-verdict-bar {
+      margin-bottom: 8px;
+      padding: 7px 11px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .msg-verdict-bar.allow {
+      background: var(--soc-jade-bg);
+      border: 1px solid rgba(61, 166, 124, 0.5);
+      color: #75d6b0;
+    }
+
+    .msg-verdict-bar.compromised {
+      background: var(--soc-crimson-bg);
+      border: 1px solid rgba(217, 56, 74, 0.55);
+      color: #ff94a0;
+    }
+
+    .msg-verdict-bar.defended {
+      background: rgba(216, 179, 106, 0.15);
+      border: 1px solid rgba(216, 179, 106, 0.55);
+      color: var(--soc-gold-soft);
+    }
+
+    /* POLE WPROWADZANIA PROMPTU */
+    .prompt-row {
+      display: flex;
+      gap: 9px;
+      margin-top: 10px;
+      align-items: stretch;
+    }
+
+    textarea#prompt-input {
+      flex: 1;
+      background: var(--soc-input);
+      color: var(--soc-text);
+      border: 1px solid var(--soc-border);
+      border-radius: 4px;
+      padding: 9px 13px;
+      font-size: 14.5px;
+      font-weight: 500;
+      font-family: inherit;
+      min-height: 52px;
+      resize: vertical;
+    }
+
+    textarea#prompt-input:focus {
+      outline: none;
+      border-color: var(--soc-gold);
+    }
+
+    #send-btn {
+      min-width: 155px;
+    }
+
+    /* PRAWA KOLUMNA: INTEGRALNOŚĆ REKORDU KONTRAHENTA I OUTBOX */
+    .integrity-banner {
+      padding: 9px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 800;
+      font-family: var(--soc-mono);
+      text-align: center;
+      margin-bottom: 10px;
+      border: 1px solid rgba(61, 166, 124, 0.55);
+      background: var(--soc-jade-bg);
+      color: #75d6b0;
+    }
+
+    .integrity-banner.compromised {
+      border-color: rgba(217, 56, 74, 0.68);
+      background: var(--soc-crimson-bg);
+      color: #ff8f9c;
+    }
+
+    .state-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .state-row {
+      background: var(--soc-input);
+      border: 1px solid var(--soc-border);
+      border-radius: 4px;
+      padding: 8px 12px;
+      min-width: 0;
+    }
+
+    .state-row.tampered {
+      border-color: rgba(217, 56, 74, 0.68);
+      background: rgba(217, 56, 74, 0.13);
+    }
+
+    .state-label {
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--soc-muted);
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .state-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--soc-text);
+      overflow-wrap: anywhere;
+    }
+
+    .state-value.code {
+      font-family: var(--soc-mono);
+      font-size: 14.5px;
+      color: var(--soc-gold-soft);
+    }
+
+    .state-row.tampered .state-value {
+      color: #ff8f9c;
+    }
+
+    /* LISTA DOKUMENTÓW MCP */
+    .doc-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .doc-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      background: var(--soc-input);
+      border: 1px solid var(--soc-border);
+      border-radius: 4px;
+      cursor: pointer;
+      min-width: 0;
+      max-width: 100%;
+      transition: border-color 0.14s ease, background-color 0.14s ease;
+    }
+
+    .doc-item:hover {
+      border-color: var(--soc-gold);
+      background: var(--soc-surface-2);
+    }
+
+    .doc-item.tainted-doc {
+      border-left: 4px solid var(--soc-crimson);
+    }
+
+    .doc-info-col {
+      min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
+    }
+
+    .doc-name-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--soc-text);
+      font-family: var(--soc-mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .doc-right-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+
+    .doc-tag {
+      font-size: 11px;
+      font-family: var(--soc-mono);
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .doc-tag.clean {
+      background: var(--soc-jade-bg);
+      color: #75d6b0;
+      border: 1px solid rgba(61, 166, 124, 0.45);
+    }
+
+    .doc-tag.attack {
+      background: var(--soc-crimson-bg);
+      color: #ff94a0;
+      border: 1px solid rgba(217, 56, 74, 0.55);
+    }
+
+    .upload-box {
+      margin-top: 9px;
+      padding-top: 9px;
+      border-top: 1px solid var(--soc-border);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* POP-UP MODALE */
+    .modal-backdrop-soc {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 7, 12, 0.85);
+      backdrop-filter: blur(5px);
+      z-index: 1050;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .modal-backdrop-soc.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #121620;
+      border: 1px solid var(--soc-gold);
+      border-radius: 6px;
+      max-width: 980px;
+      width: 100%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.82);
+      overflow: hidden;
+    }
+
+    .modal-card.arch-modal-card {
+      max-width: 97vw;
+      width: 97vw;
+      height: 93vh;
+    }
+
+    .modal-card.arch-modal-card .modal-body-soc {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 12px 16px;
+    }
+
+    .modal-card.arch-modal-card.max-canvas .arch-controls-bar {
+      display: none !important;
+    }
+
+    .modal-card.scm-preview-card {
+      max-width: 1620px;
+      width: 96vw;
+      height: 91vh;
+      --scm-prev-zoom: 100%;
+    }
+
+    .modal-card.json-modal-card {
+      max-width: 1420px;
+      height: 86vh;
+    }
+
+    .modal-card.chat-modal-card {
+      max-width: 1560px;
+      width: 96vw;
+      height: 90vh;
+      --chat-zoom-size: 16px;
+    }
+
+    #chat-modal-log {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px;
+      background: var(--soc-input);
+      border: 1px solid var(--soc-border);
+      border-radius: 5px;
+    }
+
+    #chat-modal-log .msg,
+    #chat-modal-log .msg .bubble {
+      font-size: var(--chat-zoom-size, 16px);
+      line-height: 1.52;
+    }
+
+    #chat-modal-log .msg .who {
+      font-size: calc(var(--chat-zoom-size, 16px) * 0.82);
+    }
+
+    #chat-modal-log .msg-verdict-bar {
+      font-size: calc(var(--chat-zoom-size, 16px) * 0.92);
+    }
+
+    #chat-modal-log .mcp-badge {
+      font-size: calc(var(--chat-zoom-size, 16px) * 0.88);
+    }
+
+    .modal-card.rt-modal-card {
+      max-width: 1580px;
+      width: 96vw;
+      height: 89vh;
+      --rt-zoom-size: 15px;
+    }
+
+    #rt-modal-table-wrap .rt-table th {
+      font-size: calc(var(--rt-zoom-size, 15px) * 0.90);
+      padding: 11px 13px;
+    }
+
+    #rt-modal-table-wrap .rt-table td {
+      font-size: var(--rt-zoom-size, 15px);
+      padding: 12px 13px;
+      line-height: 1.48;
+    }
+
+    #rt-modal-table-wrap .rt-table td code {
+      font-size: calc(var(--rt-zoom-size, 15px) * 0.92);
+    }
+
+    #rt-modal-table-wrap .rt-table .btn-soc-sm {
+      font-size: calc(var(--rt-zoom-size, 15px) * 0.86);
+      padding: 6px 11px;
+    }
+
+    @keyframes soc-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .spin-anim {
+      display: inline-block;
+      animation: soc-spin 0.75s linear infinite;
+    }
+
+    @keyframes rt-flash {
+      0% { background-color: rgba(216, 179, 106, 0.22); }
+      100% { background-color: transparent; }
+    }
+
+    .rt-row-flash td {
+      animation: rt-flash 0.9s ease-out;
+    }
+
+    .rt-sync-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-family: var(--soc-mono);
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .rt-sync-badge.syncing {
+      color: var(--soc-gold);
+      background: rgba(216, 179, 106, 0.14);
+      border-color: rgba(216, 179, 106, 0.45);
+    }
+
+    .rt-sync-badge.synced {
+      color: var(--soc-jade);
+      background: rgba(61, 166, 124, 0.14);
+      border-color: rgba(61, 166, 124, 0.45);
+    }
+
+    .scm-mode-switch {
+      display: inline-flex;
+      align-items: center;
+      background: var(--soc-input);
+      border: 1px solid var(--soc-border-strong);
+      border-radius: 6px;
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .scm-mode-pill {
+      background: transparent;
+      color: var(--soc-muted);
+      border: 1px solid transparent;
+      border-radius: 4px;
+      padding: 5px 11px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.16s ease;
+    }
+
+    .scm-mode-pill:hover {
+      color: var(--soc-text);
+    }
+
+    .scm-mode-pill.active {
+      background: linear-gradient(135deg, rgba(216, 179, 106, 0.25), rgba(216, 179, 106, 0.10));
+      color: var(--soc-gold-soft);
+      border-color: var(--soc-gold);
+      box-shadow: 0 0 10px rgba(216, 179, 106, 0.18);
+    }
+
+    .rt-type-tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: var(--soc-mono);
+      font-weight: 700;
+      border: 1px solid var(--soc-border-strong);
+    }
+
+    .rt-type-tag.static {
+      background: rgba(91, 141, 239, 0.14);
+      color: #93b4ff;
+      border-color: rgba(91, 141, 239, 0.45);
+    }
+
+    .rt-type-tag.dynamic {
+      background: rgba(155, 135, 245, 0.16);
+      color: #c4b5fd;
+      border-color: rgba(155, 135, 245, 0.5);
+    }
+
+    html[data-bs-theme="light"] .rt-type-tag.static {
+      background: rgba(37, 99, 235, 0.10);
+      color: #1d4ed8;
+      border-color: rgba(37, 99, 235, 0.35);
+    }
+
+    html[data-bs-theme="light"] .rt-type-tag.dynamic {
+      background: rgba(109, 40, 217, 0.10);
+      color: #6d28d9;
+      border-color: rgba(109, 40, 217, 0.35);
+    }
+
+    .modal-header-soc {
+      padding: 11px 16px;
+      background: #0b0d13;
+      border-bottom: 1px solid var(--soc-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-header-soc h3 {
+      font-size: 15px;
+      font-family: var(--soc-mono);
+      color: var(--soc-gold);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close-x {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      border: 1px solid var(--soc-border);
+      background: var(--soc-surface-2);
+      color: var(--soc-text);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+
+    .modal-close-x:hover {
+      background: var(--soc-crimson);
+      border-color: var(--soc-crimson);
+      color: #ffffff;
+    }
+
+    .modal-body-soc {
+      padding: 14px 16px;
+      overflow-y: auto;
+      font-family: var(--soc-mono);
+      font-size: 13.5px;
+      line-height: 1.55;
+      background: #0b0d13;
+      color: var(--soc-text);
+      white-space: pre-wrap;
+      flex: 1;
+    }
+
+    /* PASEK STEROWANIA I OPISU FAZY W POP-UPIE ARCHITEKTURY */
+    .arch-controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: #141926;
+      border: 1px solid var(--soc-border);
+      border-radius: 5px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+    }
+
+    .arch-step-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      background: #141822;
+      border: 1px solid var(--soc-border);
+      border-left: 5px solid var(--soc-gold);
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      flex-wrap: wrap;
+    }
+
+    .arch-step-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--soc-gold-soft);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .arch-phase-pills {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .arch-phase-dot {
+      font-size: 12px;
+      font-family: var(--soc-mono);
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: #0b0d13;
+      border: 1px solid var(--soc-border);
+      color: var(--soc-muted);
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .arch-phase-dot:hover {
+      border-color: var(--soc-gold);
+      color: var(--soc-gold-soft);
+    }
+
+    .arch-phase-dot.active {
+      border-color: var(--soc-gold);
+      color: var(--soc-gold);
+      background: rgba(216, 179, 106, 0.16);
+      font-weight: 700;
+    }
+
+    #arch-svg-wrap {
+      background: #080a0f;
+      border: 1px solid var(--soc-border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+    }
+
+    #arch-live-svg {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      display: block;
+      transition: width 0.15s ease, height 0.15s ease;
+    }
+
+    .payload-highlight {
+      background: rgba(217, 56, 74, 0.22);
+      border: 1px solid var(--soc-crimson);
+      color: #ffd0d6;
+      padding: 9px 12px;
+      border-radius: 4px;
+      display: block;
+      margin: 6px 0;
+      font-weight: 600;
+    }
+
+    /* ZWIJANY DOLNY PANEL DIAGNOSTYCZNY */
+    .drawer-section {
+      padding: 0 20px 16px 20px;
+      max-width: 1860px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .drawer-toggle-btn {
+      width: 100%;
+      background: var(--soc-surface);
+      border: 1px solid var(--soc-border);
+      color: var(--soc-text);
+      padding: 8px 15px;
+      border-radius: 5px;
+      font-size: 13.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .drawer-toggle-btn:hover {
+      border-color: var(--soc-gold);
+      color: var(--soc-gold-soft);
+    }
+
+    .drawer-content {
+      display: none;
+      margin-top: 8px;
+      background: var(--soc-surface);
+      border: 1px solid var(--soc-border);
+      border-radius: 6px;
+      padding: 13px 16px;
+    }
+
+    .drawer-content.open {
+      display: block;
+    }
+
+    .tabs-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--soc-border);
+      padding-bottom: 9px;
+      margin-bottom: 11px;
+    }
+
+    .tab-btn {
+      background: var(--soc-input);
+      border: 1px solid var(--soc-border);
+      color: var(--soc-muted);
+      padding: 6px 13px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--soc-gold);
+      color: #0b0d13;
+      border-color: var(--soc-gold);
+    }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .obs-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 1100px) {
+      .obs-metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    .obs-box {
+      background: var(--soc-input);
+      border: 1px solid var(--soc-border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      text-align: center;
+    }
+
+    .obs-box .val {
+      font-size: 15px;
+      font-weight: 700;
+      font-family: var(--soc-mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .obs-box .lbl {
+      font-size: 11.5px;
+      color: var(--soc-muted);
+      margin-top: 2px;
+    }
+
+    .json-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      background: var(--soc-surface-2);
+      border: 1px solid var(--soc-border);
+      border-radius: 4px;
+    }
+
+    pre.json-view {
+      background: var(--soc-input);
+      border: 1px solid var(--soc-border);
+      border-radius: 4px;
+      padding: 12px;
+      font-family: var(--soc-mono);
+      font-size: 13px;
+      line-height: 1.48;
+      color: var(--soc-text);
+      max-height: 280px;
+      overflow: auto;
+      white-space: pre-wrap;
+      margin: 0;
+      transition: font-size 0.12s ease;
+    }
+
+    .rt-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .rt-table th, .rt-table td {
+      border: 1px solid var(--soc-border);
+      padding: 8px 10px;
+      text-align: left;
+      background: var(--soc-input);
+      vertical-align: middle;
+    }
+
+    .rt-table th {
+      background: var(--soc-surface-2);
+      color: var(--soc-gold);
+      font-weight: 700;
+    }
+
+    .cfg-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 11px;
+    }
+
+    .cfg-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--soc-gold);
+      margin-bottom: 4px;
+    }
+
+    .cfg-field input {
+      width: 100%;
+      padding: 7px 10px;
+      background: var(--soc-input);
+      border: 1px solid var(--soc-border);
+      color: var(--soc-text);
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: var(--soc-mono);
+    }
+
+    /* =========================================================================
+       TRYB JASNY (LIGHT MODE – WYSOKI KONTRAST PROJEKCYJNY NA JASNE SALE)
+       Domyślny Tryb ciemny pozostaje w 100% bez zmian.
+       ========================================================================= */
+    body.theme-light {
+      --soc-bg: #eef2f6;
+      --soc-surface: rgba(255, 255, 255, 0.96);
+      --soc-surface-2: #f1f5f9;
+      --soc-input: #ffffff;
+      --soc-border: #cbd5e1;
+      --soc-border-strong: #b45309;
+      --soc-gold: #9a5b00;
+      --soc-gold-soft: #78350f;
+      --soc-steel: #0369a1;
+      --soc-crimson: #be123c;
+      --soc-crimson-bg: rgba(225, 29, 72, 0.10);
+      --soc-jade: #047857;
+      --soc-jade-bg: rgba(5, 150, 105, 0.11);
+      --soc-text: #0f172a;
+      --soc-muted: #475569;
+      background-color: #eef2f6;
+      background-image:
+        linear-gradient(180deg, rgba(241, 245, 249, 0.91) 0%, rgba(226, 232, 240, 0.95) 100%),
+        url('/static/cyber_bg.jpg');
+      color: var(--soc-text);
+    }
+
+    body.theme-light header.soc-navbar {
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+    }
+
+    body.theme-light .soc-card {
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    body.theme-light .arch-trigger-btn {
+      background: linear-gradient(180deg, rgba(180, 83, 9, 0.14) 0%, rgba(180, 83, 9, 0.06) 100%);
+      border-color: #b45309;
+      color: #78350f;
+    }
+
+    body.theme-light .arch-trigger-btn:hover {
+      background: #b45309;
+      color: #ffffff;
+    }
+
+    body.theme-light .mode-btn.active {
+      background: linear-gradient(180deg, rgba(217, 119, 6, 0.14) 0%, #ffffff 100%);
+      border-color: #b45309;
+      box-shadow: inset 0 2px 0 #b45309;
+    }
+
+    body.theme-light .mode-badge-pill {
+      background: #e2e8f0;
+      color: #334155;
+      border-color: #94a3b8;
+    }
+
+    body.theme-light .mode-btn.active .mode-badge-pill {
+      background: rgba(217, 119, 6, 0.15);
+      color: #78350f;
+      border-color: #b45309;
+    }
+
+    body.theme-light .btn-soc-gold {
+      background: #b45309;
+      border-color: #9a5b00;
+      color: #ffffff;
+    }
+
+    body.theme-light .btn-soc-gold:hover:not(:disabled) {
+      background: #9a5b00;
+      color: #ffffff;
+    }
+
+    body.theme-light .act-pill-btn.active {
+      background: rgba(180, 83, 9, 0.15);
+      border-color: #b45309;
+      color: #78350f;
+    }
+
+    body.theme-light .verdict-banner.verdict-allow .verdict-headline,
+    body.theme-light .msg-verdict-bar.allow,
+    body.theme-light .integrity-banner,
+    body.theme-light .doc-tag.clean {
+      color: #065f46;
+    }
+
+    body.theme-light .verdict-banner.verdict-compromised .verdict-headline,
+    body.theme-light .msg-verdict-bar.compromised,
+    body.theme-light .integrity-banner.compromised,
+    body.theme-light .state-row.tampered .state-value,
+    body.theme-light .doc-tag.attack {
+      color: #9f1239;
+    }
+
+    body.theme-light .verdict-banner.verdict-defended .verdict-headline,
+    body.theme-light .msg-verdict-bar.defended {
+      color: #78350f;
+    }
+
+    body.theme-light .msg.user {
+      background: #e0f2fe;
+      border-color: #7dd3fc;
+      color: #0f172a;
+    }
+
+    body.theme-light .msg.assistant {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+
+    body.theme-light .msg.blocked {
+      background: #fef3c7;
+      border-color: #f59e0b;
+      border-left: 4px solid #b45309;
+    }
+
+    body.theme-light .msg.compromised {
+      background: #ffe4e6;
+      border-color: #f43f5e;
+      border-left: 4px solid #be123c;
+    }
+
+    body.theme-light .mcp-badge {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      border-left-color: #b45309;
+      color: #0f172a;
+    }
+
+    body.theme-light .mcp-badge.danger-tool {
+      background: #ffe4e6;
+      border-color: #fda4af;
+      border-left-color: #be123c;
+      color: #881337;
+    }
+
+    body.theme-light .info-tip {
+      background: rgba(180, 83, 9, 0.12);
+      border-color: #b45309;
+      color: #9a5b00;
+    }
+
+    body.theme-light .info-tip:hover,
+    body.theme-light .info-tip:focus-visible {
+      background: #b45309;
+      color: #ffffff;
+    }
+
+    body.theme-light .info-tip-bubble {
+      background: #ffffff;
+      border-color: #b45309;
+      border-left: 3px solid #b45309;
+      color: #0f172a;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.22);
+    }
+
+    body.theme-light .info-tip-bubble strong {
+      color: #78350f;
+    }
+
+    body.theme-light .info-tip-bubble code {
+      background: #fef3c7;
+      color: #9a5b00;
+    }
+
+    body.theme-light .modal-card {
+      background: #ffffff;
+      border-color: #b45309;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
+    }
+
+    body.theme-light .modal-header-soc,
+    body.theme-light .modal-body-soc {
+      background: #f8fafc;
+      color: #0f172a;
+    }
+
+    body.theme-light .arch-controls-bar,
+    body.theme-light .arch-step-banner {
+      background: #ffffff;
+      border-color: #cbd5e1;
+    }
+
+    body.theme-light .arch-phase-dot {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    body.theme-light #arch-svg-wrap {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    body.theme-light .payload-highlight {
+      background: #ffe4e6;
+      border-color: #be123c;
+      color: #881337;
+    }
+  </style>
+</head>
+<body>
+  <!-- NAGŁÓWEK KONSOLI OPERACYJNEJ + PRZEŁĄCZNIKI JĘZYKA (PL/EN) I MOTYWU (JASNY/CIEMNY) + 3 PRZEŁĄCZNIKI TRYBÓW -->
+  <header class="soc-navbar">
+    <div class="header-top">
+      <div class="brand">
+        <img src="/static/bastion_logo.svg" alt="AI Agent Bastion Logo" width="72" height="72" />
+        <h1>
+          <span class="brand-accent">AI Agent Bastion</span>
+          <span id="ui-main-title">– Kto wydaje rozkazy Twojemu agentowi AI?</span>
+          <span class="info-tip info-tip--start" tabindex="0" role="button" aria-label="Environment info">
+            i
+            <span class="info-tip-bubble" id="ui-brand-tooltip" role="tooltip">
+              <strong>Środowisko demonstracyjne na żywo:</strong> prywatny klaster GKE (<code>agent-bastion-gke</code>) z&#160;agentem AI (<code>gemini-2.5-flash-lite</code>), trzema serwerami narzędzi MCP (<code>mcp-docs</code>, <code>mcp-internal-api</code>, <code>mcp-mail</code>) oraz ochroną Prisma AIRS.
+            </span>
+          </span>
+        </h1>
+      </div>
+      <div class="header-actions">
+        <button class="btn-soc" id="lang-toggle-btn" onclick="toggleLanguage()" title="Switch interface language (PL / EN)">
+          <i class="bi bi-translate"></i>
+          <span id="lang-toggle-label">EN</span>
+        </button>
+        <button class="btn-soc" id="theme-toggle-btn" onclick="toggleDisplayTheme()" title="Przełącz pomiędzy trybem ciemnym a jasnym">
+          <i class="bi bi-sun-fill" id="theme-toggle-icon"></i>
+          <span id="theme-toggle-label">Tryb jasny</span>
+        </button>
+        <button class="arch-trigger-btn" id="open-arch-btn" onclick="openArchModal()">
+          <i class="bi bi-diagram-3-fill"></i>
+          <span id="ui-open-arch-label">Schemat architektury (Live Flow)</span>
+        </button>
+        <div class="live-Cluster-pill">
+          <span class="dot ok" id="dot-cluster"></span>
+          <span id="lbl-cluster-summary">GKE + Redis: ONLINE</span>
+          <span class="info-tip info-tip--end" tabindex="0" role="button" aria-label="Cluster info">
+            i
+            <span class="info-tip-bubble" id="cluster-tooltip-text" role="tooltip">
+              <strong>Parametry klastra:</strong> GKE <code>agent-bastion-gke</code> · Model: <code>gemini-2.5-flash-lite</code> · Profil: <code>agent-bastion-airs</code> · Memorystore Redis: <code>6379</code>.
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mode-bar" role="tablist" aria-label="Agent protection mode">
+      <button class="mode-btn active" id="m-unprotected" onclick="setMode('unprotected')">
+        <span class="mode-title-text"><i class="bi bi-unlock me-1"></i><span id="ui-mode1-title">1. Bez ochrony (Direct LLM)</span></span>
+        <span class="mode-right-group">
+          <span class="mode-badge-pill" id="ui-mode1-pill">BRAK BLOKAD</span>
+          <span class="info-tip info-tip--start" tabindex="0" aria-label="Mode 1 details" onclick="event.stopPropagation()">
+            i
+            <span class="info-tip-bubble" id="ui-mode1-tip" role="tooltip">
+              <strong>Tryb 1 – Brak ochrony:</strong> bezpośrednie wywołanie modelu <code>gemini-2.5-flash-lite</code> ze statycznym kontem serwisowym bez inspekcji promptu i&#160;wyników narzędzi MCP – pełna podatność na przejęcie celu (<code>ASI01</code>) i&#160;narzędzi (<code>ASI02</code>).
+            </span>
+          </span>
+        </span>
+      </button>
+
+      <button class="mode-btn" id="m-api_runtime" onclick="setMode('api_runtime')">
+        <span class="mode-title-text"><i class="bi bi-shield-check me-1"></i><span id="ui-mode2-title">2. Ochrona w kodzie: Prisma AIRS API Runtime</span></span>
+        <span class="mode-right-group">
+          <span class="mode-badge-pill">HTTP 403</span>
+          <span class="info-tip" tabindex="0" aria-label="Mode 2 details" onclick="event.stopPropagation()">
+            i
+            <span class="info-tip-bubble" id="ui-mode2-tip" role="tooltip">
+              <strong>Tryb 2 – Inspekcja w&#160;kodzie (SDK):</strong> synchroniczne skanowanie przez pakiet <code>pan-aisecurity</code> (profil <code>agent-bastion-airs</code>) na czterech barierach: prompt wejściowy, wywołanie i&#160;wynik narzędzia MCP (<code>stage: tool_output</code>) oraz odpowiedź wyjściowa (blokada <code>HTTP 403</code>).
+            </span>
+          </span>
+        </span>
+      </button>
+
+      <button class="mode-btn" id="m-ai_gateway" onclick="setMode('ai_gateway')">
+        <span class="mode-title-text"><i class="bi bi-diagram-3 me-1"></i><span id="ui-mode3-title">3. Ochrona na bramie: Lokalny Prisma AIRS AI Gateway</span></span>
+        <span class="mode-right-group">
+          <span class="mode-badge-pill">HTTP 446</span>
+          <span class="info-tip info-tip--end" tabindex="0" aria-label="Mode 3 details" onclick="event.stopPropagation()">
+            i
+            <span class="info-tip-bubble" id="ui-mode3-tip" role="tooltip">
+              <strong>Tryb 3 – Ochrona na bramie w&#160;GKE:</strong> lokalna brama <code>airs-gw</code> z&#160;pamięcią Redis i&#160;wtyczką <code>panw-prisma-airs.intercept</code> weryfikującą ruch na barierach wejścia, narzędzi MCP oraz wyjścia bez modyfikacji kodu agenta (blokada <code>HTTP 446</code>).
+            </span>
+          </span>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <!-- GŁÓWNY OBSZAR ROBOCZY: 2 KOLUMNY (62% / 38%) -->
+  <main class="stage-container">
+    <!-- LEWA KOLUMNA (62%): KONSOLA CZATU Z LISTĄ ROZWIJANĄ 4 AKTÓW POKAZU NA ŻYWO -->
+    <section class="stage-col">
+      <div class="soc-card" style="flex:1; display:flex; flex-direction:column;">
+        <div class="soc-card-header">
+          <h2 class="soc-card-title">
+            <i class="bi bi-cpu"></i>
+            <span id="ui-chat-card-title">Konsola interakcji z agentem AI oraz wywołań narzędzi MCP</span>
+            <span class="info-tip info-tip--start" tabindex="0" aria-label="Chat console info">
+              i
+              <span class="info-tip-bubble" id="ui-chat-card-tip" role="tooltip">
+                <strong>Konsola wykonawcza:</strong> prezentuje na żywo przebieg rozmowy z&#160;agentem AI, wywołane w&#160;tle narzędzia MCP (<code>[MCP]</code>) oraz werdykt warstwy bezpieczeństwa (<code>HTTP 200</code> / <code>HTTP 403</code> / <code>HTTP 446</code>).
+              </span>
+            </span>
+          </h2>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span id="active-mode-badge" style="font-size:13px; font-weight:700; font-family:var(--soc-mono); color:var(--soc-gold-soft);">Tryb: 1. Bez ochrony</span>
+            <button class="btn-soc" onclick="openChatModal()" title="Otwórz okno czatu w prawie pełnoekranowym pop-upie z opcją powiększania czcionki">
+              <i class="bi bi-arrows-fullscreen"></i><span id="ui-btn-expand-chat">Pełny ekran</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PASEK WYBORU SCENARIUSZA -->
+        <div class="scenario-toolbar">
+          <div class="act-quick-group" role="group" aria-label="Quick Act selector">
+            <button type="button" class="act-pill-btn active" id="act-btn-1" onclick="selectScenarioById(1)">Akt 1</button>
+            <button type="button" class="act-pill-btn" id="act-btn-2" onclick="selectScenarioById(2)">Akt 2</button>
+            <button type="button" class="act-pill-btn" id="act-btn-3" onclick="selectScenarioById(3)">Akt 3</button>
+            <button type="button" class="act-pill-btn" id="act-btn-4" onclick="selectScenarioById(4)">Akt 4</button>
+          </div>
+          <select id="scenario-select" class="scenario-select" aria-label="Scenario select" onchange="onScenarioSelectChange()"></select>
+          <span class="info-tip" tabindex="0" aria-label="Scenario details">
+            i
+            <span class="info-tip-bubble" id="scenario-tooltip-text" role="tooltip">
+              Wybierz scenariusz z&#160;listy, aby zobaczyć szczegółowy opis wektora ataku, wykorzystywanych narzędzi MCP oraz mapowania OWASP 2025/2026.
+            </span>
+          </span>
+          <button class="btn-soc btn-soc-gold" id="run-scenario-btn" onclick="runSelectedScenario()">
+            <i class="bi bi-play-fill"></i><span id="ui-run-scen-label">Uruchom scenariusz</span>
+          </button>
+        </div>
+
+        <div id="verdict-banner" class="verdict-banner">
+          <div class="verdict-headline" id="verdict-headline">GOTOWY DO POKAZU NA ŻYWO – WYBIERZ AKT 1–4 LUB SCENARIUSZ Z LISTY</div>
+          <span class="info-tip info-tip--end" tabindex="0" aria-label="Verdict technical details">
+            i
+            <span class="info-tip-bubble" id="verdict-tooltip-text" role="tooltip">
+              Kliknij przycisk <strong>Uruchom scenariusz</strong>, aby wykonać przebieg na żywo w&#160;klastrze GKE i&#160;zobaczyć szczegółowe metadane skanowania (Scan ID, Trace ID, czas wykonania oraz uruchomione bariery).
+            </span>
+          </span>
+        </div>
+
+        <div id="chat-log"></div>
+
+        <div class="prompt-row">
+          <button type="button" class="btn-soc" id="clear-chat-icon-btn" onclick="clearChatLog()" title="Wyczyść rozmowę" aria-label="Wyczyść rozmowę" style="padding:8px 13px; font-size:16px;">
+            <i class="bi bi-trash3"></i>
+          </button>
+          <textarea id="prompt-input" placeholder="Wprowadź własne polecenie dla agenta AI lub wybierz gotowy scenariusz z listy rozwijanej powyżej..."></textarea>
+          <button class="btn-soc btn-soc-gold" id="send-btn" onclick="sendPrompt()">
+            <i class="bi bi-send-fill"></i><span id="ui-send-btn-label">Wyślij polecenie</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRAWA KOLUMNA (38%): STAN BAZY KONTRAHENTÓW + DOKUMENTY MCP -->
+    <aside class="stage-col">
+      <div class="soc-card">
+        <div class="soc-card-header">
+          <h2 class="soc-card-title">
+            <i class="bi bi-database-lock"></i>
+            <span id="ui-db-card-title">Stan rekordu kontraktu CTR-2026-DEF i Outbox</span>
+            <span class="info-tip info-tip--end" tabindex="0" aria-label="Contractor registry info">
+              i
+              <span class="info-tip-bubble" id="ui-db-card-tip" role="tooltip">
+                <strong>Serwery <code>mcp-internal-api</code> oraz <code>mcp-mail</code>:</strong> monitorują na żywo integralność rachunku rozliczeniowego IBAN dostawcy kluczowego, poziom uprawnień infrastrukturalnych oraz kopie wiadomości wychodzących w&#160;skrzynce <code>Outbox</code>.
+              </span>
+            </span>
+          </h2>
+          <button class="btn-soc btn-soc-gold" style="font-size:13.5px; padding:5px 12px; min-height:34px;" onclick="resetAll()">
+            <i class="bi bi-arrow-counterclockwise"></i><span id="ui-reset-btn-label">Resetuj stan</span>
+          </button>
+        </div>
+
+        <div id="integrity-banner" class="integrity-banner">
+          STAN BAZY: NIETKNIĘTY (CLEAN BASELINE)
+        </div>
+
+        <div class="state-fields" id="db-state-box">
+          <div class="state-row">
+            <div class="state-label" id="ui-lbl-contractor">KONTRAHENT (CTR-2026-DEF)</div>
+            <div class="state-value" id="st-company">AltasGen Cloud &amp; Defense Systems Sp. z o.o.</div>
+          </div>
+          <div class="state-row" id="row-iban">
+            <div class="state-label" id="ui-lbl-iban">RACHUNEK ROZLICZENIOWY IBAN</div>
+            <div class="state-value code" id="st-iban">PL10 0000 0000 0000 0000 0000 2026</div>
+          </div>
+          <div class="state-row" id="row-access">
+            <div class="state-label" id="ui-lbl-access">UPRAWNIENIA INFRASTRUKTURALNE</div>
+            <div class="state-value code" id="st-access">TIER-1-READONLY</div>
+          </div>
+          <div class="state-row" id="row-outbox">
+            <div class="state-label" id="ui-lbl-outbox">POCZTA WYCHODZĄCA (OUTBOX)</div>
+            <div class="state-value" id="st-outbox">0 wysłanych wiadomości</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="soc-card">
+        <div class="soc-card-header">
+          <h2 class="soc-card-title">
+            <i class="bi bi-folder2-open"></i>
+            <span id="ui-docs-card-title">Dokumenty w repozytorium MCP (mcp-docs)</span>
+            <span class="info-tip info-tip--end" tabindex="0" aria-label="MCP documents info">
+              i
+              <span class="info-tip-bubble" id="ui-docs-card-tip" role="tooltip">
+                <strong>Serwer <code>mcp-docs (/app/documents)</code>:</strong> kliknij dowolny plik na liście, aby otworzyć podgląd jego zawartości i&#160;zobaczyć podświetlony na czerwono ładunek <em>Indirect Prompt Injection</em>.
+              </span>
+            </span>
+          </h2>
+        </div>
+
+        <ul class="doc-list" id="docs-list"></ul>
+
+        <form id="upload-form" class="upload-box" onsubmit="uploadDoc(event)">
+          <input type="file" id="file-input" style="display:none;" onchange="handleFileSelected(event)" />
+          <button type="button" class="btn-soc" style="width:100%;" onclick="document.getElementById('file-input').click()">
+            <i class="bi bi-upload"></i><span id="ui-upload-btn-label">Wgraj własny plik do korpusu MCP</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ZWIJANY DOLNY PANEL DIAGNOSTYCZNY -->
+  <section class="drawer-section">
+    <button class="drawer-toggle-btn" id="drawer-toggle" onclick="toggleAdvancedDrawer()">
+      <span><i class="bi bi-sliders me-2"></i><span id="ui-drawer-title">Panel diagnostyczny: telemetria JSON, skaner AI Red Teaming i konfiguracja</span></span>
+      <span id="drawer-arrow">[Rozwiń ▾]</span>
+    </button>
+
+    <div class="drawer-content" id="advanced-drawer">
+      <div class="tabs-bar">
+        <button class="tab-btn active" id="tab-btn-obs" onclick="switchTab('obs')"><i class="bi bi-activity me-1"></i><span id="ui-tab-obs">Telemetria i logi JSON</span></button>
+        <button class="tab-btn" id="tab-btn-redteam" onclick="switchTab('redteam')"><i class="bi bi-crosshair me-1"></i><span id="ui-tab-redteam">Skaner porównawczy AI Red Teaming</span></button>
+        <button class="tab-btn" id="tab-btn-rthistory" onclick="switchTab('rthistory')">
+          <i class="bi bi-clock-history me-1"></i><span id="ui-tab-rthistory">Historia skanów SCM</span>
+          <span id="rt-history-count" style="background:rgba(216,179,106,0.22); border:1px solid var(--soc-gold); color:var(--soc-gold-soft); font-size:11px; padding:1px 7px; border-radius:999px; margin-left:5px; font-family:var(--soc-mono);">0</span>
+        </button>
+        <button class="tab-btn" id="tab-btn-cfg" onclick="switchTab('cfg')"><i class="bi bi-gear me-1"></i><span id="ui-tab-cfg">Konfiguracja profili i bramy</span></button>
+      </div>
+
+      <!-- ZAKŁADKA 1: OBSERVABILITY + POWIĘKSZANIE TELEMETRII JSON -->
+      <div class="tab-pane active" id="tab-obs">
+        <div class="obs-metrics-grid">
+          <div class="obs-box">
+            <div class="val" style="color:var(--soc-gold)" id="obs-trace">—</div>
+            <div class="lbl" id="ui-obs-lbl-trace">Ostatni Trace / Scan ID</div>
+          </div>
+          <div class="obs-box">
+            <div class="val" style="color:var(--soc-steel)" id="obs-latency">— ms</div>
+            <div class="lbl" id="ui-obs-lbl-lat">Czas wykonania pętli</div>
+          </div>
+          <div class="obs-box">
+            <div class="val" style="color:var(--soc-jade)" id="obs-redis">ONLINE</div>
+            <div class="lbl" id="obs-redis-lbl">Memorystore Redis :6379</div>
+          </div>
+          <div class="obs-box">
+            <div class="val" style="color:var(--soc-jade)" id="st-allow">0</div>
+            <div class="lbl" id="ui-obs-lbl-allow">Żądania dozwolone</div>
+          </div>
+          <div class="obs-box">
+            <div class="val" style="color:var(--soc-crimson)" id="st-block">0</div>
+            <div class="lbl" id="ui-obs-lbl-block">Ataki zablokowane</div>
+          </div>
+          <div class="obs-box">
+            <div class="val" style="color:var(--soc-gold)" id="st-rate">0%</div>
+            <div class="lbl"><span id="ui-obs-lbl-rate">Wskaźnik blokad</span> (<span id="st-total">0</span>)</div>
+          </div>
+        </div>
+
+        <div class="json-toolbar">
+          <span style="font-size:12.5px; font-weight:700; color:var(--soc-gold);" id="ui-json-toolbar-lbl">
+            <i class="bi bi-braces me-1"></i>Surowa telemetria bezpieczeństwa JSON (Prisma AIRS SDK / AI Gateway Hook Results):
+          </span>
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="btn-soc btn-soc-sm" onclick="changeJsonZoom(-2)" title="Pomniejsz tekst JSON">
+              <i class="bi bi-zoom-out"></i>A−
+            </button>
+            <button type="button" class="btn-soc btn-soc-sm" id="json-zoom-pct" onclick="resetJsonZoom()" title="Resetuj powiększenie">
+              100%
+            </button>
+            <button type="button" class="btn-soc btn-soc-sm" onclick="changeJsonZoom(2)" title="Powiększ tekst JSON dla sali konferencyjnej">
+              <i class="bi bi-zoom-in"></i>A+
+            </button>
+            <button type="button" class="btn-soc btn-soc-gold btn-soc-sm" onclick="openJsonModal()">
+              <i class="bi bi-arrows-fullscreen"></i><span id="ui-json-fullscreen-btn">Pełny ekran (Pop-up JSON)</span>
+            </button>
+          </div>
+        </div>
+
+        <pre class="json-view" id="raw-telemetry">// Surowa odpowiedź JSON ze skanera Prisma AIRS lub hook_results z lokalnej bramy AI Gateway pojawi się tutaj po wykonaniu zapytania...</pre>
+      </div>
+
+      <!-- ZAKŁADKA 2: SKANER AI RED TEAMING (PRAWDZIWA INTEGRACJA Z API STRATA CLOUD MANAGER) -->
+      <div class="tab-pane" id="tab-redteam">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <p style="font-size:13px; color:var(--soc-text); margin:0;" id="ui-rt-intro">
+              Integracja na żywo z <strong>Palo Alto Networks Strata Cloud Manager – AI Red Teaming API</strong> (Network Broker <code>panw-network-client</code>, profilowanie agentowe: <code>COMPLETED</code>):
+            </p>
+            <div class="scm-mode-switch" role="group" aria-label="SCM Scan Mode">
+              <button type="button" class="scm-mode-pill active" id="scm-mode-static-btn" onclick="setScmScanMode('STATIC')" title="Attack Library (STATIC) – statyczna biblioteka ataków z bazy zagrożeń Palo Alto Networks">
+                <i class="bi bi-collection-fill"></i><span id="ui-scm-mode-static">Attack Library (STATIC)</span>
+              </button>
+              <button type="button" class="scm-mode-pill" id="scm-mode-dynamic-btn" onclick="setScmScanMode('DYNAMIC')" title="Agent Scan (DYNAMIC) – w pełni autonomiczny agent Red Teamingowy w chmurze SCM">
+                <i class="bi bi-robot"></i><span id="ui-scm-mode-dynamic">Agent Scan – Pełny automat</span>
+              </button>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
+            <button class="btn-soc btn-soc-gold" id="rt-step1-btn" onclick="launchScmScan('unprotected')">
+              <i class="bi bi-1-circle-fill"></i><span id="ui-rt-step1-btn">Krok 1: Skanuj Target 1 (Bez ochrony) w SCM</span>
+            </button>
+            <button class="btn-soc" id="rt-policy-btn" onclick="openScmPolicyModal()">
+              <i class="bi bi-shield-lock-fill"></i><span id="ui-rt-policy-btn">Polityki Prisma AIRS z raportu SCM</span>
+            </button>
+            <button class="btn-soc btn-soc-gold" id="rt-step2-btn" onclick="launchScmScan('protected_both')">
+              <i class="bi bi-2-circle-fill"></i><span id="ui-rt-step2-btn">Krok 2: Skanuj Targety 2 i 3 (Z ochroną) w SCM</span>
+            </button>
+            <button class="btn-soc" id="rt-refresh-btn" onclick="refreshScmRedTeamStatus(true)">
+              <i class="bi bi-arrow-clockwise" id="rt-refresh-icon"></i><span id="ui-rt-refresh-btn">Odśwież status z SCM</span>
+            </button>
+            <span id="rt-sync-badge" class="rt-sync-badge" style="display:none;"></span>
+            <button class="btn-soc" onclick="openRedTeamModal('targets')" title="Otwórz tabelę AI Red Teaming w prawie pełnoekranowym pop-upie z opcją powiększania czcionki">
+              <i class="bi bi-arrows-fullscreen"></i><span id="ui-rt-fullscreen-btn">Pełny ekran</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="scm-policy-banner" style="display:none; background:var(--soc-surface-2); border:1px solid var(--soc-gold); border-left:4px solid var(--soc-gold); border-radius:5px; padding:10px 14px; margin-bottom:10px; font-size:13px;"></div>
+
+        <div id="rt-main-table-wrap">
+        <table class="rt-table" id="rt-main-table">
+          <thead>
+            <tr>
+              <th id="ui-rt-th-target">Cel w SCM (Target &amp; Profiling)</th>
+              <th id="ui-rt-th-url">Wewnętrzny adres w klastrze GKE</th>
+              <th id="ui-rt-th-mech">Konfiguracja Guardrails w SCM</th>
+              <th id="ui-rt-th-asr">Ostatni skan w SCM (Status · ASR · Risk Score)</th>
+              <th id="ui-rt-th-dl">Akcje i raporty z SCM</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong id="ui-rt-t1-name">1. Bastion-Agent-1-Unprotected</strong><br>
+                <span style="font-size:11px; font-family:var(--soc-mono); color:var(--soc-muted);" id="scm-uuid-unprotected">Target 1 · Profiling: COMPLETED</span>
+              </td>
+              <td><code>http://ai-agent-bastion-svc.ai-agent-bastion.svc.cluster.local/api/chat/unprotected</code></td>
+              <td id="ui-rt-t1-mech">Guardrails: <strong>OFF</strong> (Baseline podatności agenta MCP)</td>
+              <td id="rt-res-unprotected" style="color:var(--soc-crimson); font-weight:700;">Kliknij „Odśwież status z SCM” lub uruchom Krok 1</td>
+              <td id="rt-actions-unprotected">
+                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                  <button type="button" class="btn-soc btn-soc-sm" onclick="launchScmScan('unprotected')"><i class="bi bi-play-fill"></i>SCM Scan</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <strong id="ui-rt-t2-name">2. Bastion-Agent-2-AIRS-SDK-Protected</strong><br>
+                <span style="font-size:11px; font-family:var(--soc-mono); color:var(--soc-muted);" id="scm-uuid-runtime">Target 2 · Profiling: COMPLETED</span>
+              </td>
+              <td><code>http://ai-agent-bastion-svc.ai-agent-bastion.svc.cluster.local/api/chat/runtime</code></td>
+              <td id="ui-rt-t2-mech">Guardrails: <strong>ON (HTTP 403)</strong> · SDK <code>pan-aisecurity</code> (<code>agent-bastion-airs</code>)</td>
+              <td id="rt-res-runtime" style="color:var(--soc-jade); font-weight:700;">Oczekuje na Krok 2 (po ustawieniu polityk Prisma AIRS)</td>
+              <td id="rt-actions-runtime">
+                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                  <button type="button" class="btn-soc btn-soc-sm" onclick="launchScmScan('runtime')"><i class="bi bi-play-fill"></i>SCM Scan</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <strong id="ui-rt-t3-name">3. Bastion-Agent-3-AIRS-Gateway-Protected</strong><br>
+                <span style="font-size:11px; font-family:var(--soc-mono); color:var(--soc-muted);" id="scm-uuid-gateway">Target 3 · Profiling: COMPLETED</span>
+              </td>
+              <td><code>http://ai-agent-bastion-svc.ai-agent-bastion.svc.cluster.local/api/chat/gateway</code></td>
+              <td id="ui-rt-t3-mech">Guardrails: <strong>ON (HTTP 446)</strong> · Lokalny <code>airs-gw</code> + Redis</td>
+              <td id="rt-res-gateway" style="color:var(--soc-jade); font-weight:700;">Oczekuje na Krok 2 (po ustawieniu polityk Prisma AIRS)</td>
+              <td id="rt-actions-gateway">
+                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                  <button type="button" class="btn-soc btn-soc-sm" onclick="launchScmScan('gateway')"><i class="bi bi-play-fill"></i>SCM Scan</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- ZAKŁADKA 2B: PEŁNA HISTORIA WSZYSTKICH SKANÓW POWOŁANYCH W SCM -->
+      <div class="tab-pane" id="tab-rthistory">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span style="font-size:13px; color:var(--soc-text);" id="ui-rthist-intro">
+              Rejestr wszystkich zadań skanowania (<strong>Attack Library</strong> oraz <strong>Agent Scan</strong>) powołanych w <strong>Strata Cloud Manager – AI Red Teaming</strong>:
+            </span>
+            <div class="scm-mode-switch" role="group" aria-label="History Filter">
+              <button type="button" class="scm-mode-pill active" id="hist-filter-cyber-btn" onclick="setScmHistoryFilter('agent_bastion')">
+                <i class="bi bi-hdd-network"></i><span id="ui-hist-filter-cyber">Cele AI Agent Bastion (GKE)</span>
+              </button>
+              <button type="button" class="scm-mode-pill" id="hist-filter-all-btn" onclick="setScmHistoryFilter('all')">
+                <i class="bi bi-globe2"></i><span id="ui-hist-filter-all">Wszystkie w tenancie SCM</span>
+              </button>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
+            <button class="btn-soc" id="rthist-refresh-btn" onclick="refreshScmRedTeamStatus(true)">
+              <i class="bi bi-arrow-clockwise" id="rthist-refresh-icon"></i><span id="ui-rthist-refresh-btn">Odśwież historię z SCM</span>
+            </button>
+            <span id="rthist-sync-badge" class="rt-sync-badge" style="display:none;"></span>
+            <button class="btn-soc" onclick="openRedTeamModal('history')" title="Otwórz historię skanów SCM w prawie pełnoekranowym pop-upie z opcją powiększania czcionki">
+              <i class="bi bi-arrows-fullscreen"></i><span id="ui-rthist-fullscreen-btn">Pełny ekran</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="rt-history-table-wrap" style="max-height:420px; overflow-y:auto;">
+          <table class="rt-table" id="rt-history-table">
+            <thead>
+              <tr>
+                <th id="ui-rthist-th-date">Data utworzenia (UTC)</th>
+                <th id="ui-rthist-th-name">Nazwa zadania skanu i UUID</th>
+                <th id="ui-rthist-th-target">Cel w SCM (Target)</th>
+                <th id="ui-rthist-th-mode">Tryb skanu</th>
+                <th id="ui-rthist-th-status">Status i postęp prób</th>
+                <th id="ui-rthist-th-asr">Wynik (ASR · Risk Score)</th>
+                <th id="ui-rthist-th-actions">Raporty i akcje</th>
+              </tr>
+            </thead>
+            <tbody id="rt-history-tbody">
+              <tr>
+                <td colspan="7" style="text-align:center; color:var(--soc-muted); padding:18px;">Ładowanie historii skanów z chmury Strata Cloud Manager...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ZAKŁADKA 3: KONFIGURACJA -->
+      <div class="tab-pane" id="tab-cfg">
+        <div class="cfg-grid">
+          <div class="cfg-field">
+            <label for="cfg-airs-prof" id="ui-cfg-lbl-prof">Profil bezpieczeństwa SCM (AIRS_SECURITY_PROFILE_NAME)</label>
+            <input id="cfg-airs-prof" placeholder="agent-bastion-airs" />
+          </div>
+          <div class="cfg-field">
+            <label for="cfg-airs-key" id="ui-cfg-lbl-airs-key">Klucz Prisma AIRS API Runtime (AIRS_API_KEY)</label>
+            <input id="cfg-airs-key" type="password" placeholder="Pozostaw puste, aby zachować obecny klucz w podzie..." />
+          </div>
+          <div class="cfg-field">
+            <label for="cfg-pk-url" id="ui-cfg-lbl-gw-local">Adres lokalnej bramy AI Gateway w K8s (PORTKEY_GATEWAY_URL_LOCAL)</label>
+            <input id="cfg-pk-url" placeholder="http://airs-gw.airs-gw.svc.cluster.local/v1" />
+          </div>
+          <div class="cfg-field">
+            <label for="cfg-pk-cloud-url" id="ui-cfg-lbl-gw-cloud">Adres fallback AI Gateway Cloud (PORTKEY_GATEWAY_URL_CLOUD)</label>
+            <input id="cfg-pk-cloud-url" placeholder="https://aigw.portkey.ai/v1" />
+          </div>
+          <div class="cfg-field">
+            <label for="cfg-pk-prov" id="ui-cfg-lbl-prov">Identyfikator providera w AI Gateway (PORTKEY_PROVIDER)</label>
+            <input id="cfg-pk-prov" placeholder="@vertex-ai-provider" />
+          </div>
+          <div class="cfg-field">
+            <label for="cfg-pk-key" id="ui-cfg-lbl-pk-key">Klucz AI Gateway (PORTKEY_API_KEY)</label>
+            <input id="cfg-pk-key" type="password" placeholder="••••••••••••" />
+          </div>
+          <div class="cfg-field">
+            <label for="cfg-gw-model" id="ui-cfg-lbl-model">Model LLM (GW_MODEL / VERTEX_AI_MODEL)</label>
+            <input id="cfg-gw-model" placeholder="gemini-2.5-flash-lite" />
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="btn-soc btn-soc-gold" onclick="saveConfig()">
+            <i class="bi bi-check2-circle"></i><span id="ui-cfg-save-btn">Zapisz konfigurację w podzie</span>
+          </button>
+          <span id="cfg-save-status" style="font-size:13px; color:#75d6b0;"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- POP-UP MODAL: ANIMOWANY SCHEMAT ARCHITEKTURY (PRAWIE PEŁNOEKRANOWY, Z MAKSYMALIZACJĄ I POWIĘKSZANIEM) -->
+  <div class="modal-backdrop-soc" id="arch-modal" onclick="closeArchModal(event)">
+    <div class="modal-card arch-modal-card" id="arch-modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header-soc">
+        <h3>
+          <i class="bi bi-diagram-3-fill"></i>
+          <span id="ui-arch-modal-title">Schemat architektury i przepływu ruchu na żywo (GKE + MCP + Prisma AIRS)</span>
+        </h3>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="btn-soc btn-soc-gold btn-soc-sm" id="arch-max-canvas-btn" onclick="toggleArchMaxCanvas()" title="Wypełnij całe okno samym schematem architektury">
+            <i class="bi bi-arrows-angle-expand" id="arch-max-canvas-icon"></i><span id="ui-arch-max-btn">Maksymalizuj schemat</span>
+          </button>
+          <button type="button" class="btn-soc btn-soc-sm" onclick="changeArchZoom(-15)" title="Pomniejsz schemat"><i class="bi bi-zoom-out"></i>A−</button>
+          <button type="button" class="btn-soc btn-soc-sm" id="arch-zoom-pct" onclick="resetArchZoom()" title="Dopasuj do okna (100%)">100%</button>
+          <button type="button" class="btn-soc btn-soc-sm" onclick="changeArchZoom(15)" title="Powiększ schemat"><i class="bi bi-zoom-in"></i>A+</button>
+          <button class="modal-close-x" onclick="closeArchModal()" title="Close (Esc)" aria-label="Close">✕</button>
+        </div>
+      </div>
+      <div class="modal-body-soc" style="white-space:normal;">
+        <div class="arch-controls-bar">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:13px; font-weight:700; color:var(--soc-gold);" id="ui-arch-lbl-scen">Scenariusz:</span>
+            <select id="arch-scenario-select" class="scenario-select" style="flex:0 1 390px; font-size:13px; padding:5px 9px; min-height:34px;" onchange="onArchModalScenarioChange()"></select>
+            <span style="font-size:13px; font-weight:700; color:var(--soc-gold); margin-left:4px;" id="ui-arch-lbl-mode">Tryb:</span>
+            <select id="arch-mode-select" class="scenario-select" style="flex:0 1 245px; font-size:13px; padding:5px 9px; min-height:34px;" onchange="onArchModalModeChange()">
+              <option value="unprotected" id="ui-arch-opt-m1">1. Bez ochrony (Direct LLM)</option>
+              <option value="api_runtime" id="ui-arch-opt-m2">2. Prisma AIRS API Runtime (HTTP 403)</option>
+              <option value="ai_gateway" id="ui-arch-opt-m3">3. Lokalny Prisma AIRS AI Gateway (HTTP 446)</option>
+            </select>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <button class="btn-soc btn-soc-sm" onclick="stepArchPhase(-1)">
+              <i class="bi bi-skip-backward-fill"></i><span id="ui-arch-prev-btn">Poprzedni krok</span>
+            </button>
+            <button class="btn-soc btn-soc-sm" onclick="stepArchPhase(1)">
+              <span id="ui-arch-next-btn">Następny krok</span><i class="bi bi-skip-forward-fill"></i>
+            </button>
+            <button class="btn-soc btn-soc-gold" style="font-size:13px; padding:5px 12px; min-height:34px;" id="arch-autoplay-btn" onclick="toggleArchAutoPlay()">
+              <i class="bi bi-play-circle-fill"></i><span>Uruchom auto-animację</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="arch-step-banner" id="arch-step-banner">
+          <div style="display:flex; align-items:center; gap:9px;">
+            <div class="arch-step-title" id="arch-step-title">Etap 1/4: Inicjacja żądania</div>
+            <span class="info-tip info-tip--start" tabindex="0" aria-label="Step description">
+              i
+              <span class="info-tip-bubble" id="arch-step-desc" role="tooltip">
+                Użytkownik wysyła prompt do agenta AI w&#160;klastrze GKE...
+              </span>
+            </span>
+          </div>
+          <div class="arch-phase-pills">
+            <button type="button" class="arch-phase-dot active" id="arch-p1" onclick="lockArchPhase(1)">1. Wejście</button>
+            <button type="button" class="arch-phase-dot" id="arch-p2" onclick="lockArchPhase(2)">2. Inspekcja / LLM</button>
+            <button type="button" class="arch-phase-dot" id="arch-p3" onclick="lockArchPhase(3)">3. Narzędzia MCP</button>
+            <button type="button" class="arch-phase-dot" id="arch-p4" onclick="lockArchPhase(4)">4. Werdykt</button>
+          </div>
+        </div>
+
+        <div id="arch-svg-wrap">
+          <svg id="arch-live-svg" viewBox="0 0 1160 390" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Architecture Flow Diagram">
+            <defs>
+              <filter id="glow-red" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="5" result="blur" />
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <filter id="glow-gold" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="5" result="blur" />
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <filter id="glow-green" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="5" result="blur" />
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+
+            <rect id="svg-bg-rect" x="6" y="6" width="1148" height="378" rx="6" fill="#0b0d13" stroke="#262c3a" stroke-width="1.5"/>
+
+            <!-- LINIE POŁĄCZEŃ BAZOWYCH -->
+            <path id="line-u-p1" d="M 232 195 L 274 68" fill="none" stroke="#3a2329" stroke-width="2.5" stroke-dasharray="5,5"/>
+            <path id="line-u-p2" d="M 232 195 L 274 195" fill="none" stroke="#383226" stroke-width="2.5" stroke-dasharray="5,5"/>
+            <path id="line-u-p3" d="M 232 195 L 274 322" fill="none" stroke="#203830" stroke-width="2.5" stroke-dasharray="5,5"/>
+
+            <path id="line-p1-llm" d="M 560 68 L 620 195" fill="none" stroke="#3a2329" stroke-width="2.5" stroke-dasharray="5,5"/>
+            <path id="line-p2-llm" d="M 560 195 L 620 195" fill="none" stroke="#383226" stroke-width="2.5" stroke-dasharray="5,5"/>
+            <path id="line-p3-llm" d="M 560 322 L 620 195" fill="none" stroke="#203830" stroke-width="2.5" stroke-dasharray="5,5"/>
+
+            <path id="line-llm-m1" d="M 830 175 L 892 72" fill="none" stroke="#273244" stroke-width="2.5" stroke-dasharray="5,5"/>
+            <path id="line-llm-m2" d="M 830 195 L 892 195" fill="none" stroke="#273244" stroke-width="2.5" stroke-dasharray="5,5"/>
+            <path id="line-llm-m3" d="M 830 215 L 892 318" fill="none" stroke="#273244" stroke-width="2.5" stroke-dasharray="5,5"/>
+
+            <!-- WĘZEŁ 0: OPERATOR / KLIENT (POSZERZONY DO 218 PX, ABY KAŻDA ETYKIETA MIEŚCIŁA SIĘ W RAMCE) -->
+            <g id="node-user">
+              <rect id="rect-user" x="14" y="134" width="218" height="122" rx="7" fill="#141822" stroke="#7ea8be" stroke-width="2"/>
+              <text id="svg-user-title" x="123" y="173" fill="#f0f2f6" font-size="14.5" font-weight="bold" text-anchor="middle">Operator / Klient</text>
+              <text id="svg-user-sub" x="123" y="199" fill="#b8c2d4" font-size="12" text-anchor="middle">Prompt / Wejście</text>
+              <text id="svg-user-scen" x="123" y="227" fill="#d8b36a" font-size="11" font-family="monospace" font-weight="bold" text-anchor="middle">Akt 1</text>
+            </g>
+
+            <!-- WĘZEŁ 1A: TRYB 1 BEZ OCHRONY -->
+            <g id="node-path-1">
+              <rect id="rect-path-1" x="274" y="26" width="286" height="84" rx="6" fill="#1c1217" stroke="#6e2c36" stroke-width="1.8"/>
+              <text id="svg-p1-title" x="417" y="60" fill="#ff8f9c" font-size="14" font-weight="bold" text-anchor="middle">1. Bez ochrony (Direct LLM)</text>
+              <text id="svg-p1-sub" x="417" y="88" fill="#ff8f9c" font-size="12" font-family="monospace" font-weight="bold" text-anchor="middle">Guardrails: WYŁĄCZONE</text>
+            </g>
+
+            <!-- WĘZEŁ 1B: TRYB 2 PRISMA AIRS API RUNTIME -->
+            <g id="node-path-2">
+              <rect id="rect-path-2" x="274" y="153" width="286" height="84" rx="6" fill="#161a24" stroke="#6e5d3b" stroke-width="1.8"/>
+              <text id="svg-p2-title" x="417" y="187" fill="#ead29c" font-size="14" font-weight="bold" text-anchor="middle">2. Prisma AIRS API Runtime (SDK)</text>
+              <text id="svg-p2-sub" x="417" y="215" fill="#d8b36a" font-size="12" font-family="monospace" font-weight="bold" text-anchor="middle">agent-bastion-airs → HTTP 403</text>
+            </g>
+
+            <!-- WĘZEŁ 1C: TRYB 3 LOKALNY PRISMA AIRS AI GATEWAY -->
+            <g id="node-path-3">
+              <rect id="rect-path-3" x="274" y="280" width="286" height="84" rx="6" fill="#111f1d" stroke="#2c6652" stroke-width="1.8"/>
+              <text id="svg-p3-title" x="417" y="314" fill="#75d6b0" font-size="14" font-weight="bold" text-anchor="middle">3. Lokalny Prisma AIRS AI Gateway</text>
+              <text id="svg-p3-sub" x="417" y="342" fill="#75d6b0" font-size="12" font-family="monospace" font-weight="bold" text-anchor="middle">airs-gw + Redis → HTTP 446</text>
+            </g>
+
+            <!-- WĘZEŁ 2: MODEL LLM VERTEX AI -->
+            <g id="node-llm">
+              <rect id="rect-llm" x="620" y="138" width="210" height="114" rx="6" fill="#141822" stroke="#d8b36a" stroke-width="2"/>
+              <text id="svg-llm-title" x="725" y="175" fill="#ead29c" font-size="14" font-weight="bold" text-anchor="middle">Model LLM (Vertex AI)</text>
+              <text id="svg-llm-model" x="725" y="200" fill="#f0f2f6" font-size="12" font-family="monospace" text-anchor="middle">gemini-2.5-flash-lite</text>
+              <text id="svg-llm-state" x="725" y="228" fill="#d8b36a" font-size="11.5" font-family="monospace" font-weight="bold" text-anchor="middle">Stan: Otwarty</text>
+            </g>
+
+            <!-- WĘZEŁ 3A: MCP-DOCS -->
+            <g id="node-mcp-docs">
+              <rect id="rect-mcp-docs" x="892" y="28" width="248" height="88" rx="6" fill="#141822" stroke="#475467" stroke-width="1.8"/>
+              <text id="svg-docs-title" x="1016" y="60" fill="#f0f2f6" font-size="13.5" font-weight="bold" text-anchor="middle">mcp-docs (Dokumenty)</text>
+              <text id="svg-docs-status" x="1016" y="88" fill="#7ea8be" font-size="11.5" font-family="monospace" text-anchor="middle">read_document · list_documents</text>
+            </g>
+
+            <!-- WĘZEŁ 3B: MCP-INTERNAL-API -->
+            <g id="node-mcp-api">
+              <rect id="rect-mcp-api" x="892" y="151" width="248" height="88" rx="6" fill="#141822" stroke="#475467" stroke-width="1.8"/>
+              <text id="svg-api-title" x="1016" y="183" fill="#f0f2f6" font-size="13.5" font-weight="bold" text-anchor="middle">mcp-internal-api (Baza)</text>
+              <text id="svg-api-status" x="1016" y="211" fill="#75d6b0" font-size="11.5" font-family="monospace" font-weight="bold" text-anchor="middle">IBAN: PL10... (NIETKNIĘTY)</text>
+            </g>
+
+            <!-- WĘZEŁ 3C: MCP-MAIL -->
+            <g id="node-mcp-mail">
+              <rect id="rect-mcp-mail" x="892" y="274" width="248" height="88" rx="6" fill="#141822" stroke="#475467" stroke-width="1.8"/>
+              <text id="svg-mail-title" x="1016" y="306" fill="#f0f2f6" font-size="13.5" font-weight="bold" text-anchor="middle">mcp-mail (Poczta Outbox)</text>
+              <text id="svg-mail-status" x="1016" y="334" fill="#75d6b0" font-size="11.5" font-family="monospace" font-weight="bold" text-anchor="middle">Outbox: 0 (BRAK WYCIEKU)</text>
+            </g>
+
+            <!-- ZNACZNIK BLOKADY TARCZY -->
+            <g id="svg-shield-block" style="display:none;">
+              <circle id="svg-shield-circle" cx="560" cy="195" r="25" fill="#121620" stroke="#d8b36a" stroke-width="3" filter="url(#glow-gold)"/>
+              <text id="svg-shield-text" x="560" y="200" fill="#ead29c" font-size="12" font-weight="bold" font-family="monospace" text-anchor="middle">BLOCK</text>
+            </g>
+
+            <!-- PŁYNNIE ANIMOWANY PAKIET RUCHU -->
+            <g id="svg-packet-group" style="display:none;">
+              <circle id="svg-packet-outer" cx="123" cy="195" r="14" fill="rgba(217, 56, 74, 0.28)"/>
+              <circle id="svg-packet-core" cx="123" cy="195" r="7.5" fill="#ff5c6c" stroke="#ffffff" stroke-width="1.5"/>
+              <rect id="svg-packet-label-bg" x="23" y="160" width="200" height="23" rx="4" fill="#0b0d13" stroke="#d8b36a" stroke-width="1"/>
+              <text id="svg-packet-label" x="123" y="175" fill="#f0f2f6" font-size="11" font-family="monospace" font-weight="bold" text-anchor="middle">PROMPT</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POP-UP MODAL: PRAWIE PEŁNOEKRANOWE OKNO CZATU Z OPCJĄ POWIĘKSZANIA CZCIONKI (A- / 100% / A+) -->
+  <div class="modal-backdrop-soc" id="chat-modal" onclick="closeChatModal(event)">
+    <div class="modal-card chat-modal-card" id="chat-modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header-soc">
+        <h3>
+          <i class="bi bi-cpu"></i>
+          <span id="ui-chat-modal-title">Konsola interakcji z agentem AI oraz wywołań narzędzi MCP (Widok pełnoekranowy)</span>
+        </h3>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="btn-soc btn-soc-sm" onclick="changeChatModalZoom(-2)" title="Pomniejsz tekst w pop-upie czatu"><i class="bi bi-zoom-out"></i>A−</button>
+          <button type="button" class="btn-soc btn-soc-sm" id="chat-modal-zoom-pct" onclick="resetChatModalZoom()" title="Resetuj powiększenie">100%</button>
+          <button type="button" class="btn-soc btn-soc-sm" onclick="changeChatModalZoom(2)" title="Powiększ tekst w pop-upie czatu"><i class="bi bi-zoom-in"></i>A+</button>
+          <button class="modal-close-x" onclick="closeChatModal()" title="Close (Esc)" aria-label="Close">✕</button>
+        </div>
+      </div>
+      <div class="modal-body-soc" style="white-space:normal; display:flex; flex-direction:column; gap:10px; font-family:'Inter', 'Segoe UI', system-ui, sans-serif;">
+        <div class="scenario-toolbar" style="margin-bottom:0;">
+          <div class="act-quick-group" role="group">
+            <button type="button" class="act-pill-btn active" id="modal-act-btn-1" onclick="selectScenarioById(1)">Akt 1</button>
+            <button type="button" class="act-pill-btn" id="modal-act-btn-2" onclick="selectScenarioById(2)">Akt 2</button>
+            <button type="button" class="act-pill-btn" id="modal-act-btn-3" onclick="selectScenarioById(3)">Akt 3</button>
+            <button type="button" class="act-pill-btn" id="modal-act-btn-4" onclick="selectScenarioById(4)">Akt 4</button>
+          </div>
+          <select id="modal-scenario-select" class="scenario-select" onchange="selectScenarioById(this.value, true)"></select>
+          <button class="btn-soc btn-soc-gold" id="modal-run-scenario-btn" onclick="runSelectedScenario()">
+            <i class="bi bi-play-fill"></i><span id="ui-modal-run-scen-label">Uruchom scenariusz</span>
+          </button>
+        </div>
+
+        <div id="modal-verdict-banner" class="verdict-banner" style="margin-bottom:0;">
+          <div class="verdict-headline" id="modal-verdict-headline">GOTOWY DO POKAZU NA ŻYWO – WYBIERZ AKT 1–4 LUB SCENARIUSZ Z LISTY</div>
+        </div>
+
+        <div id="chat-modal-log"></div>
+
+        <div class="prompt-row" style="margin-top:0;">
+          <button type="button" class="btn-soc" onclick="clearChatLog()" title="Wyczyść rozmowę" aria-label="Wyczyść rozmowę" style="padding:8px 13px; font-size:16px;">
+            <i class="bi bi-trash3"></i>
+          </button>
+          <textarea id="modal-prompt-input" style="flex:1; background:var(--soc-input); color:var(--soc-text); border:1px solid var(--soc-border); border-radius:4px; padding:9px 13px; font-size:15px; font-weight:500; font-family:inherit; min-height:52px; resize:vertical;" placeholder="Wprowadź własne polecenie dla agenta AI..." oninput="document.getElementById('prompt-input').value = this.value"></textarea>
+          <button class="btn-soc btn-soc-gold" id="modal-send-btn" onclick="document.getElementById('prompt-input').value = document.getElementById('modal-prompt-input').value; sendPrompt();">
+            <i class="bi bi-send-fill"></i><span id="ui-modal-send-btn-label">Wyślij polecenie</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POP-UP MODAL: PEŁNOEKRANOWA TABELA AI RED TEAMING I HISTORIA SKANÓW (Z POWIĘKSZANIEM A- / 100% / A+) -->
+  <div class="modal-backdrop-soc" id="redteam-modal" onclick="closeRedTeamModal(event)">
+    <div class="modal-card rt-modal-card" id="rt-modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header-soc">
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <h3 style="margin:0;">
+            <i class="bi bi-crosshair"></i>
+            <span id="ui-rt-modal-title">Skaner porównawczy AI Red Teaming – Strata Cloud Manager (Widok pełnoekranowy)</span>
+          </h3>
+          <div class="scm-mode-switch" role="group" aria-label="Modal View Switcher">
+            <button type="button" class="scm-mode-pill active" id="rt-modal-view-targets-btn" onclick="switchRedTeamModalView('targets')">
+              <i class="bi bi-bullseye"></i><span id="ui-rt-modal-view-targets">3 Cele GKE (Porównanie)</span>
+            </button>
+            <button type="button" class="scm-mode-pill" id="rt-modal-view-history-btn" onclick="switchRedTeamModalView('history')">
+              <i class="bi bi-clock-history"></i><span id="ui-rt-modal-view-history">Historia wszystkich skanów SCM</span>
+            </button>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="btn-soc btn-soc-sm" onclick="changeRedTeamModalZoom(-2)" title="Pomniejsz tabelę AI Red Teaming"><i class="bi bi-zoom-out"></i>A−</button>
+          <button type="button" class="btn-soc btn-soc-sm" id="rt-modal-zoom-pct" onclick="resetRedTeamModalZoom()" title="Resetuj powiększenie">100%</button>
+          <button type="button" class="btn-soc btn-soc-sm" onclick="changeRedTeamModalZoom(2)" title="Powiększ tabelę AI Red Teaming"><i class="bi bi-zoom-in"></i>A+</button>
+          <button class="modal-close-x" onclick="closeRedTeamModal()" title="Close (Esc)" aria-label="Close">✕</button>
+        </div>
+      </div>
+      <div class="modal-body-soc" style="white-space:normal; display:flex; flex-direction:column; gap:12px; font-family:'Inter', 'Segoe UI', system-ui, sans-serif;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <p style="font-size:14px; color:var(--soc-text); margin:0;" id="ui-rt-modal-intro">
+              Integracja na żywo z <strong>Palo Alto Networks Strata Cloud Manager – AI Red Teaming API</strong> (Network Broker <code>panw-network-client</code>, profilowanie agentowe: <code>COMPLETED</code>):
+            </p>
+            <div class="scm-mode-switch" role="group" aria-label="SCM Scan Mode Modal">
+              <button type="button" class="scm-mode-pill active" id="scm-modal-mode-static-btn" onclick="setScmScanMode('STATIC')">
+                <i class="bi bi-collection-fill"></i><span id="ui-scm-modal-mode-static">Attack Library (STATIC)</span>
+              </button>
+              <button type="button" class="scm-mode-pill" id="scm-modal-mode-dynamic-btn" onclick="setScmScanMode('DYNAMIC')">
+                <i class="bi bi-robot"></i><span id="ui-scm-modal-mode-dynamic">Agent Scan – Pełny automat</span>
+              </button>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
+            <button class="btn-soc btn-soc-gold" onclick="launchScmScan('unprotected')">
+              <i class="bi bi-1-circle-fill"></i><span id="ui-rt-modal-step1-btn">Krok 1: Skanuj Target 1 (Bez ochrony) w SCM</span>
+            </button>
+            <button class="btn-soc" onclick="openScmPolicyModal()">
+              <i class="bi bi-shield-lock-fill"></i><span id="ui-rt-modal-policy-btn">Polityki Prisma AIRS z raportu SCM</span>
+            </button>
+            <button class="btn-soc btn-soc-gold" onclick="launchScmScan('protected_both')">
+              <i class="bi bi-2-circle-fill"></i><span id="ui-rt-modal-step2-btn">Krok 2: Skanuj Targety 2 i 3 (Z ochroną) w SCM</span>
+            </button>
+            <button class="btn-soc" id="rt-modal-refresh-btn" onclick="refreshScmRedTeamStatus(true)">
+              <i class="bi bi-arrow-clockwise" id="rt-modal-refresh-icon"></i><span id="ui-rt-modal-refresh-btn">Odśwież status z SCM</span>
+            </button>
+            <span id="rt-modal-sync-badge" class="rt-sync-badge" style="display:none;"></span>
+          </div>
+        </div>
+
+        <div id="scm-modal-policy-banner" style="display:none; background:var(--soc-surface-2); border:1px solid var(--soc-gold); border-left:4px solid var(--soc-gold); border-radius:5px; padding:10px 14px; font-size:14px;"></div>
+
+        <div id="rt-modal-table-wrap" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POP-UP MODAL: PEŁNOEKRANOWY PODGLĄD RAPORTU PDF/HTML ORAZ JSON VIEWER POLITYKI SCM (Z POWIĘKSZANIEM I TWORZENIEM POLITYKI) -->
+  <div class="modal-backdrop-soc" id="scm-preview-modal" onclick="closeScmPreviewModal(event)">
+    <div class="modal-card scm-preview-card" id="scm-preview-card" onclick="event.stopPropagation()">
+      <div class="modal-header-soc">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <h3 style="margin:0;">
+            <i class="bi bi-file-earmark-richtext" id="scm-preview-icon"></i>
+            <span id="scm-preview-title">Podgląd raportu i polityki bezpieczeństwa SCM</span>
+          </h3>
+          <div class="scm-mode-switch" role="group">
+            <button type="button" class="scm-mode-pill active" id="scm-prev-tab-report" onclick="switchScmPreviewTab('report')">
+              <i class="bi bi-file-earmark-pdf-fill"></i><span id="ui-scm-prev-tab-report">Raport PDF / HTML</span>
+            </button>
+            <button type="button" class="scm-mode-pill" id="scm-prev-tab-policy" onclick="switchScmPreviewTab('policy')">
+              <i class="bi bi-braces-asterisk"></i><span id="ui-scm-prev-tab-policy">Polityka Prisma AIRS (JSON Viewer)</span>
+            </button>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:7px; flex-wrap:wrap;">
+          <!-- Przyciski akcji dla widoku Raportu -->
+          <div id="scm-prev-report-actions" style="display:flex; align-items:center; gap:6px;">
+            <button type="button" class="btn-soc btn-soc-gold btn-soc-sm" onclick="printScmPreviewReport()">
+              <i class="bi bi-printer-fill"></i><span id="ui-scm-prev-print-btn">Drukuj / Zapisz PDF</span>
+            </button>
+            <button type="button" class="btn-soc btn-soc-sm" onclick="downloadScmPreviewCurrent('pdf_html')">
+              <i class="bi bi-download"></i><span id="ui-scm-prev-dl-html-btn">Pobierz raport (.html)</span>
+            </button>
+            <button type="button" class="btn-soc btn-soc-sm" onclick="downloadScmPreviewCurrent('scm_zip')">
+              <i class="bi bi-file-earmark-zip"></i><span id="ui-scm-prev-dl-zip-btn">Pobierz paczkę (.zip)</span>
+            </button>
+          </div>
+          <!-- Przyciski akcji dla widoku Polityki JSON -->
+          <div id="scm-prev-policy-actions" style="display:none; align-items:center; gap:6px;">
+            <button type="button" class="btn-soc btn-soc-gold btn-soc-sm" id="scm-create-loose-policy-btn" onclick="createLoosePolicyInScm()">
+              <i class="bi bi-cloud-plus-fill"></i><span id="ui-scm-create-policy-btn">Utwórz luźną politykę w SCM (Podgląd)</span>
+            </button>
+            <button type="button" class="btn-soc btn-soc-sm" onclick="copyScmPreviewJson()">
+              <i class="bi bi-clipboard-check"></i><span id="ui-scm-copy-json-btn">Kopiuj JSON</span>
+            </button>
+            <button type="button" class="btn-soc btn-soc-sm" onclick="downloadScmPreviewCurrent('policy_json')">
+              <i class="bi bi-download"></i><span id="ui-scm-prev-dl-json-btn">Pobierz politykę (.json)</span>
+            </button>
+          </div>
+          <!-- Powiększanie A- / 100% / A+ -->
+          <button type="button" class="btn-soc btn-soc-sm" onclick="changeScmPreviewZoom(-15)" title="Pomniejsz treść"><i class="bi bi-zoom-out"></i>A−</button>
+          <button type="button" class="btn-soc btn-soc-sm" id="scm-prev-zoom-pct" onclick="resetScmPreviewZoom()" title="Resetuj powiększenie">100%</button>
+          <button type="button" class="btn-soc btn-soc-sm" onclick="changeScmPreviewZoom(15)" title="Powiększ treść"><i class="bi bi-zoom-in"></i>A+</button>
+          <button class="modal-close-x" onclick="closeScmPreviewModal()" title="Close (Esc)" aria-label="Close">✕</button>
+        </div>
+      </div>
+      <div class="modal-body-soc" style="white-space:normal; display:flex; flex-direction:column; gap:10px; padding:12px 16px; overflow:hidden; font-family:'Inter', 'Segoe UI', system-ui, sans-serif;">
+        <div id="scm-prev-status-banner" style="display:none; background:rgba(61, 166, 124, 0.14); border:1px solid var(--soc-jade); border-left:4px solid var(--soc-jade); border-radius:5px; padding:9px 14px; font-size:13.5px; color:var(--soc-text);"></div>
+
+        <!-- WIDOK 1: PEŁNOEKRANOWY PODGLĄD RAPORTU PDF/HTML -->
+        <div id="scm-prev-report-pane" style="flex:1; min-height:0; background:#f8fafc; border:1px solid var(--soc-border); border-radius:6px; overflow:auto;">
+          <iframe id="scm-prev-report-iframe" title="SCM Report Preview" style="width:100%; height:100%; border:none; background:#f8fafc;"></iframe>
+        </div>
+
+        <!-- WIDOK 2: PEŁNOEKRANOWY JSON VIEWER POLITYKI PRISMA AIRS -->
+        <div id="scm-prev-policy-pane" style="display:none; flex:1; min-height:0; flex-direction:column; gap:10px; overflow:hidden;">
+          <div id="scm-prev-policy-cards" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+          <pre id="scm-prev-json-viewer" style="flex:1; min-height:0; margin:0; padding:14px 16px; background:var(--soc-input); border:1px solid var(--soc-border); border-radius:6px; overflow:auto; font-family:var(--soc-mono); font-size:15px; line-height:1.52; color:var(--soc-text); white-space:pre-wrap;"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POP-UP MODAL: PEŁNOEKRANOWY PODGLĄD TELEMETRII JSON (Z POWIĘKSZANIEM A- / A+) -->
+  <div class="modal-backdrop-soc" id="json-modal" onclick="closeJsonModal(event)">
+    <div class="modal-card json-modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header-soc">
+        <h3>
+          <i class="bi bi-braces-asterisk"></i>
+          <span id="ui-json-modal-title">Telemetria bezpieczeństwa JSON (Widok pełnoekranowy)</span>
+        </h3>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="btn-soc btn-soc-sm" onclick="changeJsonZoom(-2)"><i class="bi bi-zoom-out"></i>A−</button>
+          <button type="button" class="btn-soc btn-soc-sm" id="json-modal-zoom-pct" onclick="resetJsonZoom()">100%</button>
+          <button type="button" class="btn-soc btn-soc-sm" onclick="changeJsonZoom(2)"><i class="bi bi-zoom-in"></i>A+</button>
+          <button class="modal-close-x" onclick="closeJsonModal()" title="Close (Esc)" aria-label="Close">✕</button>
+        </div>
+      </div>
+      <div class="modal-body-soc" id="json-modal-content" style="font-size:16px; line-height:1.55;"></div>
+    </div>
+  </div>
+
+  <!-- MODAL PODGLĄDU DOKUMENTU MCP -->
+  <div class="modal-backdrop-soc" id="doc-modal" onclick="closeDocModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header-soc">
+        <h3 id="modal-doc-title"><i class="bi bi-file-earmark-code"></i><span>Podgląd dokumentu MCP</span></h3>
+        <button class="modal-close-x" onclick="closeDocModal()" title="Close (Esc)" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body-soc" id="modal-doc-content"></div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
